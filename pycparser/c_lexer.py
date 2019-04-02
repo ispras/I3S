@@ -103,10 +103,13 @@ class CLexer(object):
         '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
         'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
         'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG',
+        'UINT8_T', 'UINT16_T', 'UINT32_T', 'UINT64_T',
         'REGISTER', 'OFFSETOF',
         'RESTRICT', 'RETURN', 'SHORT', 'SIGNED', 'SIZEOF', 'STATIC', 'STRUCT',
         'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
         'VOLATILE', 'WHILE', '__INT128',
+        'TCG', 'TCGV', 'TCGV_I32', 'TCGV_I64', 'TCGV_PTR', 'TCGLABEL',
+        'TRANSLATIONBLOCK', 'TCGMEMOP', 'BOOL',
     )
 
     keyword_map = {}
@@ -115,6 +118,20 @@ class CLexer(object):
             keyword_map['_Bool'] = keyword
         elif keyword == '_COMPLEX':
             keyword_map['_Complex'] = keyword
+        elif keyword == 'TCGV':
+            keyword_map['TCGv'] = keyword
+        elif keyword == 'TCGV_I32':
+            keyword_map['TCGv_i32'] = keyword
+        elif keyword == 'TCGV_I64':
+            keyword_map['TCGv_i64'] = keyword
+        elif keyword == 'TCGV_PTR':
+            keyword_map['TCGv_ptr'] = keyword
+        elif keyword == 'TCGLABEL':
+            keyword_map['TCGLabel'] = keyword
+        elif keyword == 'TRANSLATIONBLOCK':
+            keyword_map['TranslationBlock'] = keyword
+        elif keyword == 'TCGMEMOP':
+            keyword_map['TCGMemOp'] = keyword
         else:
             keyword_map[keyword.lower()] = keyword
 

@@ -765,6 +765,7 @@ class CParser(PLYParser):
     def p_type_specifier_no_typeid(self, p):
         """ type_specifier_no_typeid  : VOID
                                       | _BOOL
+                                      | BOOL
                                       | CHAR
                                       | SHORT
                                       | INT
@@ -775,6 +776,18 @@ class CParser(PLYParser):
                                       | SIGNED
                                       | UNSIGNED
                                       | __INT128
+                                      | TCG
+                                      | TCGV
+                                      | TCGV_I32
+                                      | TCGV_I64
+                                      | TCGV_PTR
+                                      | TCGLABEL
+                                      | UINT8_T
+                                      | UINT16_T
+                                      | UINT32_T
+                                      | UINT64_T
+                                      | TRANSLATIONBLOCK
+                                      | TCGMEMOP
         """
         p[0] = c_ast.IdentifierType([p[1]],
             coord=self._token_coord(p, 1),
