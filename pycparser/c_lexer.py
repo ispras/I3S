@@ -169,11 +169,6 @@ class CLexer(object):
 
         # Ellipsis (...)
         'ELLIPSIS',
-
-        # pre-processor
-        'PPHASH',       # '#'
-        'PPPRAGMA',     # 'pragma'
-        'PPPRAGMASTR',
     )
 
     ##
@@ -230,92 +225,6 @@ class CLexer(object):
     binary_exponent_part = r'''([pP][+-]?[0-9]+)'''
     hex_fractional_constant = '((('+hex_digits+r""")?\."""+hex_digits+')|('+hex_digits+r"""\.))"""
     hex_floating_constant = '('+hex_prefix+'('+hex_digits+'|'+hex_fractional_constant+')'+binary_exponent_part+'[FfLl]?)'
-
-    ##
-    ## Lexer states: used for preprocessor \n-terminated directives
-    ##
-    states = (
-        # ppline: preprocessor line directives
-        #
-        ('ppline', 'exclusive'),
-
-        # pppragma: pragma
-        #
-        ('pppragma', 'exclusive'),
-    )
-
-    def t_PPHASH(self, t):
-        r'[ \t]*\#'
-        if self.line_pattern.match(t.lexer.lexdata, pos=t.lexer.lexpos):
-            t.lexer.begin('ppline')
-            self.pp_line = self.pp_filename = None
-        elif self.pragma_pattern.match(t.lexer.lexdata, pos=t.lexer.lexpos):
-            t.lexer.begin('pppragma')
-        else:
-            t.type = 'PPHASH'
-            return t
-
-    ##
-    ## Rules for the ppline state
-    ##
-    @TOKEN(string_literal)
-    def t_ppline_FILENAME(self, t):
-        if self.pp_line is None:
-            self._error('filename before line number in #line', t)
-        else:
-            self.pp_filename = t.value.lstrip('"').rstrip('"')
-
-    @TOKEN(decimal_constant)
-    def t_ppline_LINE_NUMBER(self, t):
-        if self.pp_line is None:
-            self.pp_line = t.value
-        else:
-            # Ignore: GCC's cpp sometimes inserts a numeric flag
-            # after the file name
-            pass
-
-    def t_ppline_NEWLINE(self, t):
-        r'\n'
-        if self.pp_line is None:
-            self._error('line number missing in #line', t)
-        else:
-            self.lexer.lineno = int(self.pp_line)
-
-            if self.pp_filename is not None:
-                self.filename = self.pp_filename
-
-        t.lexer.begin('INITIAL')
-
-    def t_ppline_PPLINE(self, t):
-        r'line'
-        pass
-
-    t_ppline_ignore = ' \t'
-
-    def t_ppline_error(self, t):
-        self._error('invalid #line directive', t)
-
-    ##
-    ## Rules for the pppragma state
-    ##
-    def t_pppragma_NEWLINE(self, t):
-        r'\n'
-        t.lexer.lineno += 1
-        t.lexer.begin('INITIAL')
-
-    def t_pppragma_PPPRAGMA(self, t):
-        r'pragma'
-        return t
-
-    t_pppragma_ignore = ' \t'
-
-    def t_pppragma_STR(self, t):
-        '.+'
-        t.type = 'PPPRAGMASTR'
-        return t
-
-    def t_pppragma_error(self, t):
-        self._error('invalid #pragma directive', t)
 
     ##
     ## Rules for the normal state
@@ -479,6 +388,21 @@ class CLexer(object):
             t.type = "TYPEID"
         return t
 
+    # Comments (ignored)
+    def t_comment(self, t):
+        r'/\*(.|\n)*?\*/'
+        t.lexer.lineno += t.value.count('\n')
+
+    def t_cpp_comment(self, t):
+        r'//.*?(\n|$)'
+        t.lexer.lineno += t.value.count('\n')
+
+    # Preprocessor directive (ignored)
+    def t_preprocessor(self, t):
+        r'\#(.)*?\n'
+        t.lexer.lineno += 1
+
     def t_error(self, t):
         msg = 'Illegal character %s' % repr(t.value[0])
+        t.lexer.lineno += t.value.count('\n')
         self._error(msg, t)

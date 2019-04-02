@@ -96,17 +96,43 @@ class NodeCfg(object):
         if self.all_entries:
             args = ', '.join(self.all_entries)
             slots = ', '.join("'{0}'".format(e) for e in self.all_entries)
-            slots += ", 'coord', '__weakref__'"
-            arglist = '(self, %s, coord=None)' % args
+            if self.name == 'ID':
+                slots += ", 'coord', 'prefix', 'var_type', '__weakref__'"
+                arglist = "(self, %s, coord=None, prefix='', var_type=None)" % args
+            elif self.name == 'FuncCall':
+                slots += ", 'coord', 'prefix', 'args_type', '__weakref__'"
+                arglist = "(self, %s, coord=None, prefix='', args_type=None)" % args
+            elif self.name == 'FileAST':
+                slots += ", 'coord', 'prefix', 'suffix', '__weakref__'"
+                arglist = "(self, %s, coord=None, prefix='', suffix='')" % args
+            else:
+                if self.name == 'IdentifierType':
+                    slots += ", 'coord', 'prefix', 'is_local_tcg', '__weakref__'"
+                else:
+                    slots += ", 'coord', 'prefix', '__weakref__'"
+
+                if self.name == 'Compound':
+                    arglist = "(self, %s, coord=None, prefix=['',''])" % args
+                else:
+                    arglist = "(self, %s, coord=None, prefix='')" % args
         else:
-            slots = "'coord', '__weakref__'"
-            arglist = '(self, coord=None)'
+            slots = "'coord', 'prefix', '__weakref__'"
+            arglist = "(self, coord=None, prefix='')"
 
         src += "    __slots__ = (%s)\n" % slots
         src += "    def __init__%s:\n" % arglist
 
-        for name in self.all_entries + ['coord']:
+        for name in self.all_entries + ['coord', 'prefix']:
             src += "        self.%s = %s\n" % (name, name)
+
+        if self.name == 'ID':
+            src += "        self.var_type = var_type\n"
+        elif self.name == 'FuncCall':
+            src += "        self.args_type = args_type\n"
+        elif self.name == 'IdentifierType':
+            src += "        self.is_local_tcg = False\n"
+        elif self.name == 'FileAST':
+            src += "        self.suffix = suffix\n"
 
         return src
 
@@ -198,6 +224,17 @@ def _repr(obj):
     else:
         return repr(obj) 
 
+def adapt_prefix(s):
+    if sys.version_info[0] == 2:
+        s = s.decode("utf-8").replace(" ", u"\u2423").encode("utf-8")
+    else:
+        s = s.replace(" ", u"\u2423")
+    # \\l - for left justification
+    return s.\
+        replace("\\", "\\\\").\
+        replace('\n', "\\\\n\\l").\
+        replace("\t", "\\\\t")
+
 class Node(object):
     __slots__ = ()
     """ Abstract base class for AST nodes.
@@ -226,7 +263,16 @@ class Node(object):
         """
         pass
 
-    def show(self, buf=sys.stdout, offset=0, attrnames=False, nodenames=False, showcoord=False, _my_node_name=None):
+    def show(self,
+        buf=sys.stdout,
+        offset=0,
+        attrnames=False,
+        nodenames=False,
+        showcoord=False,
+        showprefix=False,
+        showtype=False,
+        _my_node_name=None
+    ):
         """ Pretty print the Node and all its attributes and
             children (recursively) to a buffer.
 
@@ -247,6 +293,13 @@ class Node(object):
             showcoord:
                 Do you want the coordinates of each Node to be
                 displayed.
+
+            showprefix:
+                Do you want the prefix of each Node to be
+                displayed.
+
+            showtype:
+                Do you want the type of each ID to be displayed.
         """
         lead = ' ' * offset
         if nodenames and _my_node_name is not None:
@@ -265,6 +318,25 @@ class Node(object):
 
         if showcoord:
             buf.write(' (at %s)' % self.coord)
+
+        if showprefix:
+            prefix = self.prefix
+            if isinstance(prefix, list):
+                buf.write(' (prefix = ')
+                for e in prefix:
+                    buf.write('[%s]' % adapt_prefix(e))
+            else:
+                buf.write(' (prefix = %s)' % adapt_prefix(prefix))
+
+        if showtype:
+            if isinstance(self, ID):
+                buf.write('(type =')
+                if self.var_type is None:
+                    buf.write(' undefine')
+                else:
+                    for e in self.var_type:
+                        buf.write(' %s' % e)
+                buf.write(')')
         buf.write('\n')
 
         for (child_name, child) in self.children():
@@ -274,7 +346,94 @@ class Node(object):
                 attrnames=attrnames,
                 nodenames=nodenames,
                 showcoord=showcoord,
+                showprefix=showprefix,
+                showtype=showtype,
                 _my_node_name=child_name)
+
+    def determine_var_type(self, ns = {}, func_params = {}):
+        """ Determine variable (ID) type.
+
+            ns is dictonary containing current name space:
+                Key: ID name
+                Value: [ID type, is_local]
+        """
+
+        if isinstance(
+            self,
+            (Label, Goto, DoWhile, While, Case, Default)
+        ):
+            for v in ns.values():
+                v[1] = True
+            for child_name, child in self.children():
+                child.determine_var_type(ns, func_params)
+
+        elif isinstance(self, FuncCall):
+            for v in ns.values():
+                v[1] = True
+            if self.name.name in func_params:
+                self.args_type = func_params[self.name.name]
+
+            self.args.determine_var_type(ns, func_params)
+
+        elif isinstance(self, For):
+            if self.init is not None:
+                self.init.determine_var_type(ns, func_params)
+            for v in ns.values():
+                v[1] = True
+            if self.cond is not None:
+                self.cond.determine_var_type(ns, func_params)
+            if self.next is not None:
+                self.next.determine_var_type(ns, func_params)
+            self.stmt.determine_var_type(ns, func_params)
+
+        elif isinstance(self, If):
+            self.cond.determine_var_type(ns, func_params)
+            for v in ns.values():
+                v[1] = True
+            self.iftrue.determine_var_type(ns, func_params)
+            if self.iffalse is not None:
+                self.iffalse.determine_var_type(ns, func_params)
+
+        elif isinstance(self, Compound):
+            if self.block_items is not None:
+                # We don't need to deepcopy namespace.
+                # If new variable has been declared,
+                # list link will be changed to new.
+                # If variable has been used,
+                # value in all parent name space will be updated.
+                ns = ns.copy()
+                for child in self.block_items:
+                    child.determine_var_type(ns, func_params)
+
+        elif isinstance(self, FuncDef):
+            func_name = self.decl.type.type.declname
+            func_params[func_name] = []
+            body_ns = ns.copy()
+            for p in self.decl.type.args.params:
+                while not (isinstance(p, TypeDecl) and isinstance(p.type, IdentifierType)):
+                    p = p.type
+                body_ns[p.declname] = [p.type, False]
+                func_params[func_name].append(p.type.names)
+
+            self.body.determine_var_type(body_ns)
+
+        elif isinstance(self, TypeDecl) \
+         and isinstance(self.type, IdentifierType):
+            # TODO: support typedef
+            ns[self.declname] = [self.type, False]
+
+        elif isinstance(self, ID):
+            if self.name in ns:
+                id_desc = ns[self.name]
+                self.var_type = id_desc[0].names
+                if id_desc[1]:
+                    l = self.var_type
+                    if 'tcg' in l:
+                        id_desc[0].is_local_tcg = True
+
+        else:
+            for child_name, child in self.children():
+                child.determine_var_type(ns, func_params)
 
 
 class NodeVisitor(object):

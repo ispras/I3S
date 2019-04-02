@@ -67,7 +67,9 @@ def fix_switch_cases(switch_node):
 
     # The new Compound child for the Switch, which will collect children in the
     # correct order
-    new_compound = c_ast.Compound([], switch_node.stmt.coord)
+    new_compound = c_ast.Compound([],
+        switch_node.stmt.coord,
+        switch_node.stmt.prefix)
 
     # The last Case/Default node
     last_case = None
