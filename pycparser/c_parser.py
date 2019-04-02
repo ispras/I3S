@@ -511,7 +511,7 @@ class CParser(PLYParser):
         ('left', 'AND'),
         ('left', 'EQ', 'NE'),
         ('left', 'GT', 'GE', 'LT', 'LE'),
-        ('left', 'RSHIFT', 'LSHIFT'),
+        ('left', 'RSHIFT', 'LSHIFT', 'RROT', 'LROT'),
         ('left', 'PLUS', 'MINUS'),
         ('left', 'TIMES', 'DIVIDE', 'MOD')
     )
@@ -1575,6 +1575,8 @@ class CParser(PLYParser):
                                 | MODEQUAL
                                 | PLUSEQUAL
                                 | MINUSEQUAL
+                                | LROTEQUAL
+                                | RROTEQUAL
                                 | LSHIFTEQUAL
                                 | RSHIFTEQUAL
                                 | ANDEQUAL
@@ -1603,6 +1605,8 @@ class CParser(PLYParser):
                                 | binary_expression MOD binary_expression
                                 | binary_expression PLUS binary_expression
                                 | binary_expression MINUS binary_expression
+                                | binary_expression RROT binary_expression
+                                | binary_expression LROT binary_expression
                                 | binary_expression RSHIFT binary_expression
                                 | binary_expression LSHIFT binary_expression
                                 | binary_expression LT binary_expression

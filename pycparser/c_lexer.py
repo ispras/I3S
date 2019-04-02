@@ -159,6 +159,7 @@ class CLexer(object):
         # Operators
         'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MOD',
         'OR', 'AND', 'NOT', 'XOR', 'LSHIFT', 'RSHIFT',
+        'LROT', 'RROT',
         'LOR', 'LAND', 'LNOT',
         'LT', 'LE', 'GT', 'GE', 'EQ', 'NE',
 
@@ -166,6 +167,7 @@ class CLexer(object):
         'EQUALS', 'TIMESEQUAL', 'DIVEQUAL', 'MODEQUAL',
         'PLUSEQUAL', 'MINUSEQUAL',
         'LSHIFTEQUAL','RSHIFTEQUAL', 'ANDEQUAL', 'XOREQUAL',
+        'LROTEQUAL','RROTEQUAL',
         'OREQUAL',
 
         # Increment/decrement
@@ -263,6 +265,8 @@ class CLexer(object):
     t_AND               = r'&'
     t_NOT               = r'~'
     t_XOR               = r'\^'
+    t_LROT            = r'<<<'
+    t_RROT            = r'>>>'
     t_LSHIFT            = r'<<'
     t_RSHIFT            = r'>>'
     t_LOR               = r'\|\|'
@@ -282,6 +286,8 @@ class CLexer(object):
     t_MODEQUAL          = r'%='
     t_PLUSEQUAL         = r'\+='
     t_MINUSEQUAL        = r'-='
+    t_LROTEQUAL       = r'<<<='
+    t_RROTEQUAL       = r'>>>='
     t_LSHIFTEQUAL       = r'<<='
     t_RSHIFTEQUAL       = r'>>='
     t_ANDEQUAL          = r'&='
