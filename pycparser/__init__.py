@@ -7,7 +7,7 @@
 # Eli Bendersky [https://eli.thegreenplace.net/]
 # License: BSD
 #-----------------------------------------------------------------
-__all__ = ['c_lexer', 'c_parser', 'c_ast']
+__all__ = ['c_lexer', 'c_parser', 'c_ast', 'i3s_processing']
 __version__ = '2.19'
 
 import io
