@@ -1996,15 +1996,6 @@ class I3SProcessing(object):
         l_id = get_id(lvalue)
         if cs.indent is None:
             cs.indent = get_indent(l_id)
-        if node.op != '=':
-            if l_type is not None:
-                bo = c_ast.BinaryOp(
-                    node.op[:-1],
-                    duplicate_simple_node(lvalue),
-                    node.rvalue
-                )
-                node.op = '='
-                node.rvalue = bo
 
         if debug:
             p = get_node_prefix(nlv)
@@ -2014,6 +2005,16 @@ class I3SProcessing(object):
             lv_prefix = insert_debug_info(l_id.prefix, c)
         else:
             lv_prefix = l_id.prefix
+
+        if node.op != '=':
+            if l_type is not None:
+                bo = c_ast.BinaryOp(
+                    node.op[:-1],
+                    duplicate_simple_node(lvalue),
+                    node.rvalue
+                )
+                node.op = '='
+                node.rvalue = bo
 
         rvalue = self.processing(node.rvalue, node, False)
         if rvalue is None:
