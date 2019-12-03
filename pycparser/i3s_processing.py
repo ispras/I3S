@@ -481,16 +481,14 @@ class CompoundState(object):
 
 
 def insert_debug_info(prefix, comment):
-    prefix_pats = prefix.split('\n')
-    new_prefix = ''
-    for p in prefix_pats[:-1]:
-        new_prefix += p + '\n'
+    # insert debug info keeping node's indent and comment
+    # debug info should be right above the node
+    idx = prefix.rfind('\n')
+    if idx == -1:
+        return prefix + comment
     else:
-        new_prefix = new_prefix[:-1]
+        return prefix[:idx] + comment + prefix[idx:]
 
-    new_prefix += comment + '\n' + prefix_pats[-1]
-
-    return new_prefix
 
 
 class I3SProcessing(object):
