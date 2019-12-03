@@ -490,6 +490,10 @@ def insert_debug_info(prefix, comment):
         return prefix[:idx] + comment + prefix[idx:]
 
 
+# debug comment prefix
+DCP = '/* src: '
+# debug comment suffix
+DCS = ' */'
 
 class I3SProcessing(object):
     def __init__(self):
@@ -500,10 +504,6 @@ class I3SProcessing(object):
         self.continue_label = []
 
         self.generator = c_generator.CGenerator()
-        # debug comment prefix
-        self.dcp = '/* src: '
-        # debug comment suffix
-        self.dcs = ' */'
 
     def processing(self, node, parent, debug = False):
         if node is not None:
@@ -548,7 +548,7 @@ class I3SProcessing(object):
             if debug:
                 prefix = insert_debug_info(
                     node.prefix,
-                    cs.indent + self.dcp + 'continue' + self.dcs
+                    cs.indent + DCP + 'continue' + DCS
                 )
             else:
                 prefix = node.prefix
@@ -571,7 +571,7 @@ class I3SProcessing(object):
             if debug:
                 prefix = insert_debug_info(
                     node.prefix,
-                    cs.indent + self.dcp + 'break' + self.dcs
+                    cs.indent + DCP + 'break' + DCS
                 )
             else:
                 prefix = node.prefix
@@ -622,7 +622,7 @@ class I3SProcessing(object):
         if debug:
             p = node.name.prefix
             node.name.prefix = ''
-            c = cs.indent + self.dcp + self.generator.visit(node) + self.dcs
+            c = cs.indent + DCP + self.generator.visit(node) + DCS
             node.name.prefix = p
             prefix = insert_debug_info(node.name.prefix, c)
         else:
@@ -739,7 +739,7 @@ class I3SProcessing(object):
             cs.indent = indent
 
         if debug:
-            comment = cs.indent + self.dcp + 'for ('
+            comment = cs.indent + DCP + 'for ('
             if node.init is not None:
                 comment += self.generator.visit(node.init)
             comment += ';'
@@ -748,7 +748,7 @@ class I3SProcessing(object):
             comment += ';'
             if node.next is not None:
                 comment += self.generator.visit(node.next)
-            comment += ')' + self.dcs
+            comment += ')' + DCS
             prefix = insert_debug_info(node.prefix, comment)
         else:
             prefix = node.prefix
@@ -816,7 +816,7 @@ class I3SProcessing(object):
         set_label_func = gen_terminator_label(node.stmt, indent, label_false)
         if debug:
             set_label_func.name.prefix = cs.indent + \
-                self.dcp + 'end of the "for"' + self.dcs +\
+                DCP + 'end of the "for"' + DCS +\
                 set_label_func.name.prefix
         cs.subast.append(set_label_func)
 
@@ -872,7 +872,7 @@ class I3SProcessing(object):
         if debug:
             prefix = insert_debug_info(
                 node.prefix,
-                cs.indent + self.dcp + 'start of the "DoWhile"' + self.dcs
+                cs.indent + DCP + 'start of the "DoWhile"' + DCS
             )
         else:
             prefix = node.prefix
@@ -886,9 +886,9 @@ class I3SProcessing(object):
         set_label_func = gen_terminator_label(node.stmt, indent, label_false)
 
         if debug:
-            comment = cs.indent + self.dcp +\
+            comment = cs.indent + DCP +\
                 'do {...} while (' + self.generator.visit(node.cond) + ')' +\
-                self.dcs
+                DCS
             set_label_func.name.prefix = insert_debug_info(
                 set_label_func.name.prefix,
                 comment
@@ -907,8 +907,8 @@ class I3SProcessing(object):
             cs.indent = indent
 
         if debug:
-            comment = cs.indent + self.dcp +\
-                'while (' + self.generator.visit(node.cond) + ')' + self.dcs
+            comment = cs.indent + DCP +\
+                'while (' + self.generator.visit(node.cond) + ')' + DCS
             prefix = insert_debug_info(node.prefix, comment)
         else:
             prefix = node.prefix
@@ -949,7 +949,7 @@ class I3SProcessing(object):
         set_label_func = gen_terminator_label(node.stmt, indent, label_false)
         if debug:
             set_label_func.name.prefix = cs.indent + \
-                self.dcp + 'end of the "while"' + self.dcs +\
+                DCP + 'end of the "while"' + DCS +\
                 set_label_func.name.prefix
         cs.subast.append(set_label_func)
 
@@ -966,8 +966,8 @@ class I3SProcessing(object):
             indent = cs.indent
 
         if debug:
-            debug_info = cs.indent + self.dcp +\
-                'if (' + self.generator.visit(node.cond) + ')' + self.dcs
+            debug_info = cs.indent + DCP +\
+                'if (' + self.generator.visit(node.cond) + ')' + DCS
 
         cond = self.processing(node.cond, node, False)
 
@@ -1014,8 +1014,8 @@ class I3SProcessing(object):
                 prefix = node.prefix
         else:
             if debug:
-                prefix = debug_info[:(len(indent) + len(self.dcp))] + 'else ' +\
-                    debug_info[(len(indent) + len(self.dcp)):] + indent
+                prefix = debug_info[:(len(indent) + len(DCP))] + 'else ' +\
+                    debug_info[(len(indent) + len(DCP)):] + indent
             else:
                 prefix = indent
 
@@ -1058,7 +1058,7 @@ class I3SProcessing(object):
             cs.subast[-1],
             insert_debug_info(
                 get_node_prefix(cs.subast[-1]),
-                cs.indent + self.dcp + 'end of the "if"' + self.dcs
+                cs.indent + DCP + 'end of the "if"' + DCS
             )
         )
 
@@ -1086,14 +1086,14 @@ class I3SProcessing(object):
                     cs.subast[l],
                     insert_debug_info(
                         get_node_prefix(cs.subast[l]),
-                        cs.indent + self.dcp + 'else' + self.dcs
+                        cs.indent + DCP + 'else' + DCS
                     )
                 )
                 set_node_prefix(
                     cs.subast[-1],
                     insert_debug_info(
                         get_node_prefix(cs.subast[-1]),
-                        cs.indent + self.dcp + 'end of the "else"' + self.dcs
+                        cs.indent + DCP + 'end of the "else"' + DCS
                     )
                 )
 
@@ -1146,8 +1146,8 @@ class I3SProcessing(object):
             cs.indent = indent
 
         if debug:
-            comment = cs.indent + self.dcp +\
-                'switch (' + self.generator.visit(node.cond) + ')' + self.dcs
+            comment = cs.indent + DCP +\
+                'switch (' + self.generator.visit(node.cond) + ')' + DCS
             prefix = insert_debug_info(node.prefix, comment)
         else:
             prefix = node.prefix
@@ -1236,12 +1236,12 @@ class I3SProcessing(object):
 
         for i, child in enumerate(node.stmt):
             if debug:
-                c = cs.indent + self.dcp
+                c = cs.indent + DCP
                 if isinstance(child, c_ast.Case):
                     c += 'case' + self.generator.visit(child.expr) + ':'
                 else:
                     c += 'default:'
-                prefix = insert_debug_info(child.prefix, c + self.dcs)
+                prefix = insert_debug_info(child.prefix, c + DCS)
             else:
                 prefix = indent
 
@@ -1266,7 +1266,7 @@ class I3SProcessing(object):
                 cs.subast[-1],
                 insert_debug_info(
                     get_node_prefix(cs.subast[-1]),
-                    cs.indent + self.dcp + 'end of the "switch"' + self.dcs
+                    cs.indent + DCP + 'end of the "switch"' + DCS
                 )
             )
 
@@ -1559,8 +1559,8 @@ class I3SProcessing(object):
                 if debug:
                     p = expr_id.prefix
                     expr_id.prefix = ''
-                    comment = cs.indent + self.dcp +\
-                        self.generator.visit(node) + self.dcs
+                    comment = cs.indent + DCP +\
+                        self.generator.visit(node) + DCS
                     prefix = insert_debug_info(p, comment)
                     expr_id.prefix = p
                 else:
@@ -1581,8 +1581,8 @@ class I3SProcessing(object):
                 if debug:
                     p = node.prefix
                     node.prefix = ''
-                    comment = cs.indent + self.dcp +\
-                        self.generator.visit(node) + self.dcs
+                    comment = cs.indent + DCP +\
+                        self.generator.visit(node) + DCS
                     inc_dec_prefix = insert_debug_info(p, comment)
                     node.prefix = p
                 else:
@@ -1998,7 +1998,7 @@ class I3SProcessing(object):
         if debug:
             p = get_node_prefix(nlv)
             set_node_prefix(nlv, '')
-            c = cs.indent + self.dcp + self.generator.visit(node) + self.dcs
+            c = cs.indent + DCP + self.generator.visit(node) + DCS
             set_node_prefix(nlv, p)
             lv_prefix = insert_debug_info(l_id.prefix, c)
         else:
