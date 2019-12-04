@@ -457,7 +457,7 @@ int if_test(void) {
 
     // if (tcg_tl > 0)
     TCGLabel *i3s_label_0 = gen_new_label();
-    tcg_gen_brcondi_tl(TCG_COND_LEU, tcg_tl, 0, i3s_label_0);
+    tcg_gen_brcondi_tl(TCG_COND_LEU, tcg_tl, 0, i3s_label_0); /* open curly braces */
     TCGv tcg_tl_2 = tcg_temp_local_new();
     // if (start < 0)
     TCGLabel *i3s_label_1 = gen_new_label();
@@ -472,7 +472,7 @@ int if_test(void) {
     return N;
     // end if (start < 0)
     gen_set_label(i3s_label_1);
-    if (c_var == 0) {
+    if (c_var == 0) { /* open curly braces */
         tcg_gen_movi_tl(tcg_tl_2, 0);
     }
     // end if (tcg_tl > 0)

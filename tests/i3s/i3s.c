@@ -285,7 +285,7 @@ int if_test(void) {
             c_var = 5;
 
     // if (tcg_tl > 0)
-    if (tcg_tl > 0) {
+    if (tcg_tl > 0) { /* open curly braces */
         tcg tcg_tl_2;
         // if (start < 0)
         if (tcg_tl < 0) {
@@ -296,7 +296,7 @@ int if_test(void) {
             return N;
         // end if (start < 0)
         }
-        if (c_var == 0) {
+        if (c_var == 0) { /* open curly braces */
             tcg_tl_2 = 0;
         }
     // end if (tcg_tl > 0)
