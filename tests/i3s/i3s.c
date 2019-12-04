@@ -179,6 +179,7 @@ int test_expr(void) {
     tcg_tl_1 = tcg_tl_1 | tcg_tl_2;
     tcg_tl_1 = tcg_tl_1 | tcg_tl_signed;
     tcg_tl_1 = tcg_tl_signed | tcg_tl_1;
+    /* comment before compound assignment */
     tcg_tl_1 |= tcg_tl_1;
     // &
     tcg_tl_1 = tcg_tl_1 & c_var_2;
