@@ -19,14 +19,25 @@ def i3s_test():
     reference_standards = f_reference_standards.read()
     f_reference_standards.close()
 
+    f_reference_standards = open("i3s_debug_reference_standards.c", "r")
+    d_reference_standards = f_reference_standards.read()
+    f_reference_standards.close()
+    print("Test without debug comments was passed")
+
+    generator = c_generator.CGenerator()
+
     ast = parse_file("i3s.c")
     i3s_processing.convert_i3s_to_c(ast)
-    generator = c_generator.CGenerator()
     i3s_processed = generator.visit(ast)
-
     TestCase().assertEqual(i3s_processed + ast.suffix, reference_standards)
+
+    # debug comments generation testing
+    ast = parse_file("i3s.c")
+    i3s_processing.convert_i3s_to_c(ast, True)
+    i3s_processed = generator.visit(ast)
+    TestCase().assertEqual(i3s_processed + ast.suffix, d_reference_standards)
+    print("Test with debug comments was passed")
 
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     i3s_test()
-    print("Test was passed")
