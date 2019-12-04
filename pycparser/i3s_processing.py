@@ -480,20 +480,24 @@ class CompoundState(object):
             return c_ast.ID(res_var.name, var_type = dest_type)
 
 
+# debug comment prefix
+DCP = '/* src: '
+# debug comment suffix
+DCS = ' */'
+
+
 def insert_debug_info(prefix, comment):
-    # insert debug info keeping node's indent and comment
-    # debug info should be right above the node
-    idx = prefix.rfind('\n')
+    # Insert debug info keeping node's indent and comment.
+    # Debug info should be right above the node.
+    # AST depth-first traversaled so we insert debug comment
+    # above previous debug comments.
+    dcp_idx = prefix.find(DCP)
+    idx = prefix.rfind('\n', 0, dcp_idx)
     if idx == -1:
         return prefix + comment
     else:
         return prefix[:idx] + comment + prefix[idx:]
 
-
-# debug comment prefix
-DCP = '/* src: '
-# debug comment suffix
-DCS = ' */'
 
 class I3SProcessing(object):
     def __init__(self):
