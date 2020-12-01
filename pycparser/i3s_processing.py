@@ -612,7 +612,12 @@ class I3SProcessing(object):
         old_local = copy(cs.tcg_tmp_local_list_hold)
 
         args_count = len(node.args_type)
+
+        if args_count == 1 and node.args_type[0] == ["void"]:
+            return node
+
         given_args = len(node.args.exprs)
+
         if args_count != given_args:
             raise TypeError(
                 '{}: function has {} args, but {} args were given'.format(
