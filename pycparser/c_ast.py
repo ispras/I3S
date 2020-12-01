@@ -176,7 +176,8 @@ class Node(object):
             if self.name.name in func_params:
                 self.args_type = func_params[self.name.name]
 
-            self.args.determine_var_type(ns, func_params)
+            if self.args:
+                self.args.determine_var_type(ns, func_params)
 
         elif isinstance(self, For):
             if self.init is not None:
