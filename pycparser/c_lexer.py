@@ -109,7 +109,7 @@ class CLexer(object):
         'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
         'VOLATILE', 'WHILE', '__INT128',
         'TCG', 'TCGV', 'TCGV_I32', 'TCGV_I64', 'TCGV_PTR', 'TCGLABEL',
-        'TRANSLATIONBLOCK', 'TCGMEMOP', 'BOOL',
+        'TRANSLATIONBLOCK', 'TCGMEMOP', 'MEMOP', 'BOOL',
     )
 
     keyword_map = {}
@@ -132,6 +132,8 @@ class CLexer(object):
             keyword_map['TranslationBlock'] = keyword
         elif keyword == 'TCGMEMOP':
             keyword_map['TCGMemOp'] = keyword
+        elif keyword == 'MEMOP':
+            keyword_map['MemOp'] = keyword
         else:
             keyword_map[keyword.lower()] = keyword
 

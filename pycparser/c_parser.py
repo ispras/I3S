@@ -788,6 +788,7 @@ class CParser(PLYParser):
                                       | UINT64_T
                                       | TRANSLATIONBLOCK
                                       | TCGMEMOP
+                                      | MEMOP
         """
         p[0] = c_ast.IdentifierType([p[1]],
             coord=self._token_coord(p, 1),
