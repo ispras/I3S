@@ -34,7 +34,7 @@ but the sequence of priorities is as follows:
 - Global *tcg* var must be only extern.
 - Loop *for* is *tcg* dependent if the condition is *tcg* dependent.
 
-ATTENSION: Try to avoid declare variadles with the same name, because the
+ATTENTION: Try to avoid declare variables with the same name, because the
 compound will be converted to linear code without compound
 for tcg-depended `if/loops`.
 The tool only ensure that variable in tcg-depended `if/loops` will be renamed
@@ -42,7 +42,7 @@ if its name has been encountered before.
 Renaming is done by adding a suffix to the name.
 A message with a new name of vars and line number in src file will be displayed
 in console after renaming.
-Also renaming don't work for delaration in init in 'For' loop.
+Also renaming don't work for declaration in init in 'For' loop.
 
 To become familiar with all restrictions you need to read TODO.
 
@@ -50,7 +50,7 @@ To become familiar with all restrictions you need to read TODO.
 - Array:
 
     - support tcg index (by automatic helpers generation);
-    - fixup pointer handling: if a[n][k] has tcg type ==> a[n] has tcg type too (a[n] shoud be a pointer).
+    - fixup pointer handling: if a[n][k] has tcg type ==> a[n] has tcg type too (a[n] should be a pointer).
 
 - Analysis functions body and arguments for specific *tcg* expressions.
 
@@ -58,14 +58,14 @@ To become familiar with all restrictions you need to read TODO.
 
 - Warning when *tcg* var dependent if/loops contains *C* vars.
 
-- Tracs basic block only for *tcg* var.
+- Trace basic block only for *tcg* var.
 
 - Support special *tcg* conditional Always/Never (True/False).
 
 - Support ternary operator.
 
 - Support if/loops without compounds that contains tcg-expression,
-because *tcg* expression can deploy to several *C* expression.
+because *tcg* expression can deploy to several *C* expressions.
 
 - Integrate `gen_set_label` sequences in one.
 
@@ -82,7 +82,7 @@ specification.
 The tool is written in Python.
 Both 2.7.3+ and 3.3+ versions are supported.
 
-I3S test shoud be run using 3.3+ Python.
+I3S test should be run using 3.3+ Python.
 
 ### How to run
 `python i3s_to_c.py --in-file i3s_in.c --out-file tcg_out.c`
@@ -105,4 +105,4 @@ The reference standards is stored in *i3s_reference_standards.c*.
 
 You can update *i3s_reference_standards.c* using
 
-`python update_reference_standarts.py`
+`python update_reference_standards.py`
