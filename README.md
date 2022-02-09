@@ -82,8 +82,6 @@ specification.
 The tool is written in Python.
 Both 2.7.3+ and 3.3+ versions are supported.
 
-I3S test should be run using 3.3+ Python.
-
 ### How to run
 `python i3s_to_c.py --in-file i3s_in.c --out-file tcg_out.c`
 
