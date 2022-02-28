@@ -1,6 +1,7 @@
 import sys
 from unittest import (
-    TestCase
+    TestCase,
+    main
 )
 
 # This is not required if you've installed pycparser into
@@ -14,30 +15,26 @@ from pycparser import (
     i3s_processing
 )
 
-def i3s_test():
-    f_reference_standards = open("i3s_reference_standards.c", "r")
-    reference_standards = f_reference_standards.read()
-    f_reference_standards.close()
 
-    f_reference_standards = open("i3s_debug_reference_standards.c", "r")
-    d_reference_standards = f_reference_standards.read()
-    f_reference_standards.close()
-    print("Test without debug comments was passed")
+class TestGeneration(TestCase):
 
-    generator = c_generator.CGenerator()
+    def generation(self, refs_filename, debug):
+        with open(refs_filename, "r") as f:
+            reference_standards = f.read()
 
-    ast = parse_file("i3s.c")
-    i3s_processing.convert_i3s_to_c(ast)
-    i3s_processed = generator.visit(ast)
-    TestCase().assertEqual(i3s_processed + ast.suffix, reference_standards)
+        generator = c_generator.CGenerator()
 
-    # debug comments generation testing
-    ast = parse_file("i3s.c")
-    i3s_processing.convert_i3s_to_c(ast, True)
-    i3s_processed = generator.visit(ast)
-    TestCase().assertEqual(i3s_processed + ast.suffix, d_reference_standards)
-    print("Test with debug comments was passed")
+        ast = parse_file("i3s.c")
+        i3s_processing.convert_i3s_to_c(ast, debug)
+        i3s_processed = generator.visit(ast)
+        self.assertEqual(i3s_processed + ast.suffix, reference_standards)
 
-#------------------------------------------------------------------------------
+    def test_generation_without_debug(self):
+        self.generation("i3s_reference_standards.c", False)
+
+    def test_generation_with_debug(self):
+        self.generation("i3s_debug_reference_standards.c", True)
+
+
 if __name__ == "__main__":
-    i3s_test()
+    main()
