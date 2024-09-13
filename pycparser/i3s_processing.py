@@ -2180,6 +2180,7 @@ class I3SProcessing(object):
                 cs.tcg_tmp_list = tcg_tmp_list
                 cs.tcg_tmp_list_hold = tcg_tmp_list_hold
 
+                # XXX: because of `cs.subast = []` above, this is `False`
                 if cs.subast:
                     # this case can only happen when the condition
                     # contains a FuncCall with tcg param
