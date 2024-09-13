@@ -605,7 +605,7 @@ class I3SProcessing(object):
 
         args_count = len(node.args_type)
 
-        if args_count == 1 and node.args_type[0] == ["void"]:
+        if args_count == 1 and node.args_type[0][0] == "void":
             return node
 
         old_local = copy(cs.tcg_tmp_local_list_hold)
