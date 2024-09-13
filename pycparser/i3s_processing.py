@@ -1276,36 +1276,6 @@ class I3SProcessing(object):
         self.break_label.pop()
 
     def processing_Decl(self, node, parent, debug):
-
-        def create_for_loop(count_name, const, indent):
-            return c_ast.For(
-                c_ast.Decl(
-                    name = count_name,
-                    quals = [], storage = [], funcspec = [],
-                    type = c_ast.TypeDecl(
-                        declname = count_name,
-                        type = c_ast.IdentifierType(['int']),
-                        quals = [],
-                        prefix = ' '
-                    ),
-                    init = c_ast.Constant("int", "0", prefix = ' '),
-                    bitsize = None
-                ),
-                c_ast.BinaryOp(
-                    '<',
-                    c_ast.ID(count_name, prefix = " "),
-                    const,
-                    prefix = ' '
-                ),
-                c_ast.UnaryOp(
-                    "++",
-                    c_ast.ID(count_name),
-                    prefix = " "
-                ),
-                c_ast.Compound([], prefix = [' ', indent]),
-                prefix = indent
-            )
-
         cs = self.cs
         node_type = node.type
 
@@ -2277,6 +2247,36 @@ class I3SProcessing(object):
             cs.n2c = prev_n2c
 
         cs.subast = local_subast
+
+
+def create_for_loop(count_name, const, indent):
+    return c_ast.For(
+        c_ast.Decl(
+            name = count_name,
+            quals = [], storage = [], funcspec = [],
+            type = c_ast.TypeDecl(
+                declname = count_name,
+                type = c_ast.IdentifierType(['int']),
+                quals = [],
+                prefix = ' '
+            ),
+            init = c_ast.Constant("int", "0", prefix = ' '),
+            bitsize = None
+        ),
+        c_ast.BinaryOp(
+            '<',
+            c_ast.ID(count_name, prefix = " "),
+            const,
+            prefix = ' '
+        ),
+        c_ast.UnaryOp(
+            "++",
+            c_ast.ID(count_name),
+            prefix = " "
+        ),
+        c_ast.Compound([], prefix = [' ', indent]),
+        prefix = indent
+    )
 
 
 def determine_var_type(node, ns = {}, func_params = {}):
