@@ -2285,7 +2285,7 @@ class I3SProcessing(object):
         cs.subast = local_subast
 
 
-def determine_var_type(self, ns = {}, func_params = {}):
+def determine_var_type(node, ns = {}, func_params = {}):
     """ Determine variable (ID) type.
 
         ns is dictonary containing current name space:
@@ -2294,7 +2294,7 @@ def determine_var_type(self, ns = {}, func_params = {}):
     """
 
     if isinstance(
-        self,
+        node,
         (
             c_ast.Label,
             c_ast.Goto,
@@ -2306,53 +2306,53 @@ def determine_var_type(self, ns = {}, func_params = {}):
     ):
         for v in ns.values():
             v[1] = True
-        for child_name, child in self.children():
+        for child_name, child in node.children():
             determine_var_type(child, ns, func_params)
 
-    elif isinstance(self, c_ast.FuncCall):
+    elif isinstance(node, c_ast.FuncCall):
         for v in ns.values():
             v[1] = True
-        if self.name.name in func_params:
-            self.args_type = func_params[self.name.name]
+        if node.name.name in func_params:
+            node.args_type = func_params[node.name.name]
 
-        if self.args:
-            determine_var_type(self.args, ns, func_params)
+        if node.args:
+            determine_var_type(node.args, ns, func_params)
 
-    elif isinstance(self, c_ast.For):
-        if self.init is not None:
-            determine_var_type(self.init, ns, func_params)
+    elif isinstance(node, c_ast.For):
+        if node.init is not None:
+            determine_var_type(node.init, ns, func_params)
         for v in ns.values():
             v[1] = True
-        if self.cond is not None:
-            determine_var_type(self.cond, ns, func_params)
-        if self.next is not None:
-            determine_var_type(self.next, ns, func_params)
-        determine_var_type(self.stmt, ns, func_params)
+        if node.cond is not None:
+            determine_var_type(node.cond, ns, func_params)
+        if node.next is not None:
+            determine_var_type(node.next, ns, func_params)
+        determine_var_type(node.stmt, ns, func_params)
 
-    elif isinstance(self, c_ast.If):
-        determine_var_type(self.cond, ns, func_params)
+    elif isinstance(node, c_ast.If):
+        determine_var_type(node.cond, ns, func_params)
         for v in ns.values():
             v[1] = True
-        determine_var_type(self.iftrue, ns, func_params)
-        if self.iffalse is not None:
-            determine_var_type(self.iffalse, ns, func_params)
+        determine_var_type(node.iftrue, ns, func_params)
+        if node.iffalse is not None:
+            determine_var_type(node.iffalse, ns, func_params)
 
-    elif isinstance(self, c_ast.Compound):
-        if self.block_items is not None:
+    elif isinstance(node, c_ast.Compound):
+        if node.block_items is not None:
             # We don't need to deepcopy namespace.
             # If new variable has been declared,
             # list link will be changed to new.
             # If variable has been used,
             # value in all parent name space will be updated.
             ns = ns.copy()
-            for child in self.block_items:
+            for child in node.block_items:
                 determine_var_type(child, ns, func_params)
 
-    elif isinstance(self, c_ast.FuncDef):
-        func_name = self.decl.type.type.declname
+    elif isinstance(node, c_ast.FuncDef):
+        func_name = node.decl.type.type.declname
         func_params[func_name] = []
         body_ns = ns.copy()
-        for p in self.decl.type.args.params:
+        for p in node.decl.type.args.params:
             while not (
                     isinstance(p, c_ast.TypeDecl)
                 and isinstance(p.type, c_ast.IdentifierType)
@@ -2361,24 +2361,24 @@ def determine_var_type(self, ns = {}, func_params = {}):
             body_ns[p.declname] = [p.type, False]
             func_params[func_name].append(p.type.names)
 
-        determine_var_type(self.body, body_ns)
+        determine_var_type(node.body, body_ns)
 
-    elif isinstance(self, c_ast.TypeDecl) \
-     and isinstance(self.type, c_ast.IdentifierType):
+    elif isinstance(node, c_ast.TypeDecl) \
+     and isinstance(node.type, c_ast.IdentifierType):
         # TODO: support typedef
-        ns[self.declname] = [self.type, False]
+        ns[node.declname] = [node.type, False]
 
-    elif isinstance(self, c_ast.ID):
-        if self.name in ns:
-            id_desc = ns[self.name]
-            self.var_type = id_desc[0].names
+    elif isinstance(node, c_ast.ID):
+        if node.name in ns:
+            id_desc = ns[node.name]
+            node.var_type = id_desc[0].names
             if id_desc[1]:
-                l = self.var_type
+                l = node.var_type
                 if 'tcg' in l:
                     id_desc[0].is_local_tcg = True
 
     else:
-        for child_name, child in self.children():
+        for child_name, child in node.children():
             determine_var_type(child, ns, func_params)
 
 
