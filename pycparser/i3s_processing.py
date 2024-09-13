@@ -473,6 +473,106 @@ class CompoundState(object):
             # create new insteance for next FuncCall
             return c_ast.ID(res_var.name, var_type = dest_type)
 
+    def get_bin_expr_param(self, rv, lv, is_commutative, support_int_rv,
+            r_shift = False
+    ):
+        rv_type, rv_suffix = get_node_desc(rv)
+        lv_type, lv_suffix = get_node_desc(lv)
+        i_suffix = ''
+
+        if rv_suffix is None:
+            # rv - non TCG
+            if lv_suffix is None:
+                # lv - non TCG
+                return None
+            else:
+                # lv - TCG
+                p1 = lv
+                suffix = lv_suffix
+                res_type = lv_type
+                if support_int_rv:
+                    # tcg func support int rv
+                    i_suffix += 'i'
+                    p2 = rv
+                else:
+                    # tcg func don't support non TCG rv
+                    p2 = self.convert_var_to_tcg(rv, res_type)
+        else:
+            # rv - TCG
+            if lv_suffix is None:
+                # lv - non TCG
+                suffix = rv_suffix
+                res_type = rv_type
+                if is_commutative and support_int_rv:
+                    i_suffix = 'i'
+                    p1 = rv
+                    p2 = lv
+                else:
+                    # tcg func don't support non TCG lv
+                    p1 = self.convert_var_to_tcg(lv, res_type)
+                    p2 = rv
+            elif lv_suffix == rv_suffix:
+                # lv - TCG
+                suffix = lv_suffix
+                if r_shift:
+                    res_type = lv_type
+                else:
+                    # if one of the parameter is unsigned the result is
+                    # unsigned too
+                    if 'signed' in rv_type:
+                        res_type = lv_type
+                    else:
+                        res_type = rv_type
+
+                p1 = lv
+                p2 = rv
+            else:
+                if r_shift:
+                    res_type = lv_type
+                    suffix = lv_suffix
+                    p1 = lv
+                    p2 = self.cast(
+                        (rv, rv_type, rv_suffix),
+                        (None, res_type, suffix)
+                    )
+                else:
+                    if 'long' in lv_type:
+                        if 'short' in rv_type:
+                            res_type = lv_type
+                            suffix = lv_suffix
+                            p1 = lv
+                            p2 = self.cast(
+                                (rv, rv_type, rv_suffix),
+                                (None, res_type, suffix)
+                            )
+                        else:
+                            # rv - tl
+                            res_type = rv_type
+                            suffix = rv_suffix
+                            p1 = self.cast(
+                                (lv, lv_type, lv_suffix),
+                                (None, res_type, suffix)
+                            )
+                            p2 = rv
+                    elif 'short' in lv_type:
+                        res_type = rv_type
+                        suffix = rv_suffix
+                        p1 = self.cast(
+                            (lv, lv_type, lv_suffix),
+                            (None, res_type, suffix)
+                        )
+                        p2 = rv
+                    else:
+                        # lv - tl
+                        res_type = lv_type
+                        suffix = lv_suffix
+                        p1 = lv
+                        p2 = self.cast(
+                            (rv, rv_type, rv_suffix),
+                            (None, res_type, suffix)
+                        )
+
+        return (res_type, suffix, i_suffix, p1, p2)
 
 # debug comment prefix
 DCP = '/* src: '
@@ -1678,7 +1778,7 @@ class I3SProcessing(object):
         op_desc = binary_op[node.op]
         func_name = op_desc[0]
 
-        param_desc = self.get_bin_expr_param(rv, lv, op_desc[2], op_desc[1],
+        param_desc = self.cs.get_bin_expr_param(rv, lv, op_desc[2], op_desc[1],
             r_shift = isinstance(func_name, tuple)
         )
         if param_desc is None:
@@ -1768,7 +1868,7 @@ class I3SProcessing(object):
         cs = self.cs
 
         is_commutative = op not in ('>=', '<=', '>', '<')
-        param_desc = self.get_bin_expr_param(rv, lv, is_commutative, True)
+        param_desc = self.cs.get_bin_expr_param(rv, lv, is_commutative, True)
         if param_desc is None:
             return None
         res_type, suffix, i_str, p1, p2 = param_desc
@@ -2042,108 +2142,6 @@ class I3SProcessing(object):
             set_node_prefix(e, cs.indent)
 
         return duplicate_simple_node(lvalue)
-
-    def get_bin_expr_param(self, rv, lv, is_commutative, support_int_rv,
-            r_shift = False
-    ):
-        cs = self.cs
-        rv_type, rv_suffix = get_node_desc(rv)
-        lv_type, lv_suffix = get_node_desc(lv)
-        i_suffix = ''
-
-        if rv_suffix is None:
-            # rv - non TCG
-            if lv_suffix is None:
-                # lv - non TCG
-                return None
-            else:
-                # lv - TCG
-                p1 = lv
-                suffix = lv_suffix
-                res_type = lv_type
-                if support_int_rv:
-                    # tcg func support int rv
-                    i_suffix += 'i'
-                    p2 = rv
-                else:
-                    # tcg func don't support non TCG rv
-                    p2 = cs.convert_var_to_tcg(rv, res_type)
-        else:
-            # rv - TCG
-            if lv_suffix is None:
-                # lv - non TCG
-                suffix = rv_suffix
-                res_type = rv_type
-                if is_commutative and support_int_rv:
-                    i_suffix = 'i'
-                    p1 = rv
-                    p2 = lv
-                else:
-                    # tcg func don't support non TCG lv
-                    p1 = cs.convert_var_to_tcg(lv, res_type)
-                    p2 = rv
-            elif lv_suffix == rv_suffix:
-                # lv - TCG
-                suffix = lv_suffix
-                if r_shift:
-                    res_type = lv_type
-                else:
-                    # if one of the parameter is unsigned the result is
-                    # unsigned too
-                    if 'signed' in rv_type:
-                        res_type = lv_type
-                    else:
-                        res_type = rv_type
-
-                p1 = lv
-                p2 = rv
-            else:
-                if r_shift:
-                    res_type = lv_type
-                    suffix = lv_suffix
-                    p1 = lv
-                    p2 = cs.cast(
-                        (rv, rv_type, rv_suffix),
-                        (None, res_type, suffix)
-                    )
-                else:
-                    if 'long' in lv_type:
-                        if 'short' in rv_type:
-                            res_type = lv_type
-                            suffix = lv_suffix
-                            p1 = lv
-                            p2 = cs.cast(
-                                (rv, rv_type, rv_suffix),
-                                (None, res_type, suffix)
-                            )
-                        else:
-                            # rv - tl
-                            res_type = rv_type
-                            suffix = rv_suffix
-                            p1 = cs.cast(
-                                (lv, lv_type, lv_suffix),
-                                (None, res_type, suffix)
-                            )
-                            p2 = rv
-                    elif 'short' in lv_type:
-                        res_type = rv_type
-                        suffix = rv_suffix
-                        p1 = cs.cast(
-                            (lv, lv_type, lv_suffix),
-                            (None, res_type, suffix)
-                        )
-                        p2 = rv
-                    else:
-                        # lv - tl
-                        res_type = lv_type
-                        suffix = lv_suffix
-                        p1 = lv
-                        p2 = cs.cast(
-                            (rv, rv_type, rv_suffix),
-                            (None, res_type, suffix)
-                        )
-
-        return (res_type, suffix, i_suffix, p1, p2)
 
     def handle_brcond(self, node):
         cs = self.cs
