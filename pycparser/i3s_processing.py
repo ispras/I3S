@@ -2306,7 +2306,7 @@ def determine_var_type(node, ns = {}, func_params = {}):
     ):
         for v in ns.values():
             v[1] = True
-        for child_name, child in node.children():
+        for __, child in node.children():
             determine_var_type(child, ns, func_params)
 
     elif isinstance(node, c_ast.FuncCall):
@@ -2378,7 +2378,7 @@ def determine_var_type(node, ns = {}, func_params = {}):
                     id_desc[0].is_local_tcg = True
 
     else:
-        for child_name, child in node.children():
+        for __, child in node.children():
             determine_var_type(child, ns, func_params)
 
 
