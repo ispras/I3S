@@ -767,7 +767,7 @@ class I3SProcessing(object):
         ast_free, ast_cond, brcond_id, expr_list = brcond
         ast_cond = ast_free + ast_cond
 
-        label_true = cs.tcg_label_decl()
+        label_cond = cs.tcg_label_decl()
         label_false = cs.tcg_label_decl()
         label_continue = cs.tcg_label_decl()
 
@@ -776,7 +776,7 @@ class I3SProcessing(object):
 
         cs.subast.append(c_ast.FuncCall(
             c_ast.ID('gen_set_label', prefix = indent),
-            c_ast.ExprList([c_ast.ID(label_true)])
+            c_ast.ExprList([c_ast.ID(label_cond)])
         ))
 
         cs.subast = subast_init + cs.subast + ast_cond
@@ -813,7 +813,7 @@ class I3SProcessing(object):
 
         cs.subast.append(c_ast.FuncCall(
             c_ast.ID('tcg_gen_br', prefix = indent),
-            c_ast.ExprList([c_ast.ID(label_true)])
+            c_ast.ExprList([c_ast.ID(label_cond)])
         ))
 
         set_label_func = gen_terminator_label(node.stmt, indent, label_false)
