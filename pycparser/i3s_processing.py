@@ -1394,6 +1394,7 @@ class I3SProcessing(object):
                 node.name = new_name
                 change_declname(node, new_name)
 
+            # TODO: need a comment
             cs.vars.add(node.name)
 
         if isinstance(node_type, (c_ast.Enum, c_ast.Union, c_ast.Struct)):
