@@ -143,7 +143,7 @@ def fixup_indent(node, indent):
         else:
             cur_node.prefix = cut_indent(cur_node.prefix, indent)
 
-        for child_name, child in cur_node.children():
+        for __, child in cur_node.children():
             bypass_children(child, indent)
 
     bypass_children(node, indent)
@@ -180,7 +180,7 @@ def set_node_prefix(node, prefix):
             node_type.type.prefix = prefix
             return True
 
-    for child_name, child in node.children():
+    for __, child in node.children():
         if set_node_prefix(child, prefix):
             break
 
@@ -202,7 +202,7 @@ def get_node_prefix(node):
         if isinstance(node_type.type, c_ast.IdentifierType):
             return node_type.type.prefix
 
-    for child_name, child in node.children():
+    for __, child in node.children():
         prefix = get_node_prefix(child)
         if prefix != '':
             return prefix
@@ -511,7 +511,7 @@ class I3SProcessing(object):
             )
 
     def generic_processing(self, node, parent, debug):
-        for child_name, child in node.children():
+        for __, child in node.children():
             self.processing(child, node, debug)
 
     def processing_ArrayRef(self, node, parent, debug):
