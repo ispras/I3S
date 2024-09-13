@@ -264,7 +264,7 @@ def change_declname(node, new_name):
 
 
 class CompoundState(object):
-    def __init__(self, prev_state = None, node = None):
+    def __init__(self, prev_state = None):
 
         self.vars = set()
         # names to change
@@ -723,7 +723,7 @@ class I3SProcessing(object):
         if node.block_items is None:
             return
 
-        self.cs = CompoundState(prev_state = self.cs, node = node)
+        self.cs = CompoundState(prev_state = self.cs)
         cs = self.cs
 
         new_block_items = []
@@ -1107,7 +1107,7 @@ class I3SProcessing(object):
                 )
 
     def processing_Case(self, node, parent, debug):
-        self.cs = CompoundState(prev_state = self.cs, node = node)
+        self.cs = CompoundState(prev_state = self.cs)
         cs = self.cs
 
         # We can get here only from Switch with non TCG cond
