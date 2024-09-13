@@ -681,7 +681,7 @@ class I3SProcessing(object):
             return node
 
         len_hold = len(old_local)
-        for i, v in enumerate(cs.tcg_tmp_local_list_hold):
+        for i in range(len(cs.tcg_tmp_local_list_hold)):
             if i < len_hold:
                 cs.tcg_tmp_local_list_hold[i] = old_local[i]
             else:
