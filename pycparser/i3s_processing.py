@@ -2285,7 +2285,106 @@ class I3SProcessing(object):
         cs.subast = local_subast
 
 
+def determine_var_type(self, ns = {}, func_params = {}):
+    """ Determine variable (ID) type.
+
+        ns is dictonary containing current name space:
+            Key: ID name
+            Value: [ID type, is_local]
+    """
+
+    if isinstance(
+        self,
+        (
+            c_ast.Label,
+            c_ast.Goto,
+            c_ast.DoWhile,
+            c_ast.While,
+            c_ast.Case,
+            c_ast.Default,
+        )
+    ):
+        for v in ns.values():
+            v[1] = True
+        for child_name, child in self.children():
+            determine_var_type(child, ns, func_params)
+
+    elif isinstance(self, c_ast.FuncCall):
+        for v in ns.values():
+            v[1] = True
+        if self.name.name in func_params:
+            self.args_type = func_params[self.name.name]
+
+        if self.args:
+            determine_var_type(self.args, ns, func_params)
+
+    elif isinstance(self, c_ast.For):
+        if self.init is not None:
+            determine_var_type(self.init, ns, func_params)
+        for v in ns.values():
+            v[1] = True
+        if self.cond is not None:
+            determine_var_type(self.cond, ns, func_params)
+        if self.next is not None:
+            determine_var_type(self.next, ns, func_params)
+        determine_var_type(self.stmt, ns, func_params)
+
+    elif isinstance(self, c_ast.If):
+        determine_var_type(self.cond, ns, func_params)
+        for v in ns.values():
+            v[1] = True
+        determine_var_type(self.iftrue, ns, func_params)
+        if self.iffalse is not None:
+            determine_var_type(self.iffalse, ns, func_params)
+
+    elif isinstance(self, c_ast.Compound):
+        if self.block_items is not None:
+            # We don't need to deepcopy namespace.
+            # If new variable has been declared,
+            # list link will be changed to new.
+            # If variable has been used,
+            # value in all parent name space will be updated.
+            ns = ns.copy()
+            for child in self.block_items:
+                determine_var_type(child, ns, func_params)
+
+    elif isinstance(self, c_ast.FuncDef):
+        func_name = self.decl.type.type.declname
+        func_params[func_name] = []
+        body_ns = ns.copy()
+        for p in self.decl.type.args.params:
+            while not (
+                    isinstance(p, c_ast.TypeDecl)
+                and isinstance(p.type, c_ast.IdentifierType)
+            ):
+                p = p.type
+            body_ns[p.declname] = [p.type, False]
+            func_params[func_name].append(p.type.names)
+
+        determine_var_type(self.body, body_ns)
+
+    elif (
+            isinstance(self, c_ast.TypeDecl)
+        and isinstance(self.type, c_ast.IdentifierType)
+    ):
+        # TODO: support typedef
+        ns[self.declname] = [self.type, False]
+
+    elif isinstance(self, c_ast.ID):
+        if self.name in ns:
+            id_desc = ns[self.name]
+            self.var_type = id_desc[0].names
+            if id_desc[1]:
+                l = self.var_type
+                if 'tcg' in l:
+                    id_desc[0].is_local_tcg = True
+
+    else:
+        for child_name, child in self.children():
+            determine_var_type(child, ns, func_params)
+
+
 def convert_i3s_to_c(ast, debug = False):
-    ast.determine_var_type()
+    determine_var_type(ast)
     i3s_class = I3SProcessing()
     i3s_class.processing(ast, None, debug)
