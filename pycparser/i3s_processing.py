@@ -1283,7 +1283,7 @@ class I3SProcessing(object):
                     name = count_name,
                     quals = [], storage = [], funcspec = [],
                     type = c_ast.TypeDecl(
-                        declname = "i_" + str(count),
+                        declname = count_name,
                         type = c_ast.IdentifierType(['int']),
                         quals = [],
                         prefix = ' '
