@@ -421,26 +421,20 @@ class CompoundState(object):
     def cast(self, src_desc, dest_desc, local = False):
         '''desc = (node, type, suffix)'''
 
-        src = src_desc[0]
-        dest = dest_desc[0]
+        src, src_type, src_suffix = src_desc
+        dest, dest_type, dest_suffix = dest_desc
 
-        if src_desc[2] is None:
-            if src_desc[1] is None:
+        if src_suffix is None:
+            if src_type is None:
                 src_suffix = get_tcg_suffix(get_tcg_type(src))
             else:
-                src_suffix = get_tcg_suffix(src_desc[1])
-        else:
-            src_suffix = src_desc[2]
+                src_suffix = get_tcg_suffix(src_type)
 
-        if dest_desc[1] is None:
+        if dest_type is None:
             dest_type = get_tcg_type(dest)
-        else:
-            dest_type = dest_desc[1]
 
-        if dest_desc[2] is None:
+        if dest_suffix is None:
             dest_suffix = get_tcg_suffix(dest_type)
-        else:
-            dest_suffix = dest_desc[2]
 
         if src_suffix == dest_suffix:
             if src_suffix is not None:
