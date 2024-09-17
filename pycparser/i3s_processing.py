@@ -1729,7 +1729,6 @@ class I3SProcessing(object):
                     res_var = parent.lvalue
 
             if res_var is None:
-                res_var = None
                 # Try to reuse tmp variable that are already used in binary Op
                 if isinstance(expr, c_ast.ID):
                     p1_name = expr.name
