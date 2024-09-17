@@ -1776,10 +1776,10 @@ class I3SProcessing(object):
         if rv is None:
             rv = node.right
 
-        op_desc = binary_op[node.op]
-        func_name = op_desc[0]
+        func_name, support_int_rv, is_commutative = binary_op[node.op]
 
-        param_desc = self.cs.get_bin_expr_param(rv, lv, op_desc[2], op_desc[1],
+        param_desc = self.cs.get_bin_expr_param(rv, lv, is_commutative,
+            support_int_rv,
             r_shift = isinstance(func_name, tuple)
         )
         if param_desc is None:
@@ -1797,7 +1797,7 @@ class I3SProcessing(object):
                 # sar
                 func_name = func_name[0]
 
-        if not (op_desc[1] or 'signed' in res_type):
+        if not (support_int_rv or 'signed' in res_type):
             # only for '/' and '%'
             func_name += 'u'
         else:
