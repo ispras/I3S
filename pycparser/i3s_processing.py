@@ -143,7 +143,7 @@ def fixup_indent(node, indent):
         else:
             cur_node.prefix = cut_indent(cur_node.prefix, indent)
 
-        for child_name, child in cur_node.children():
+        for __, child in cur_node.children():
             bypass_children(child, indent)
 
     bypass_children(node, indent)
@@ -180,7 +180,7 @@ def set_node_prefix(node, prefix):
             node_type.type.prefix = prefix
             return True
 
-    for child_name, child in node.children():
+    for __, child in node.children():
         if set_node_prefix(child, prefix):
             break
 
@@ -202,7 +202,7 @@ def get_node_prefix(node):
         if isinstance(node_type.type, c_ast.IdentifierType):
             return node_type.type.prefix
 
-    for child_name, child in node.children():
+    for __, child in node.children():
         prefix = get_node_prefix(child)
         if prefix != '':
             return prefix
@@ -264,7 +264,7 @@ def change_declname(node, new_name):
 
 
 class CompoundState(object):
-    def __init__(self, prev_state = None, node = None):
+    def __init__(self, prev_state = None):
 
         self.vars = set()
         # names to change
@@ -421,26 +421,20 @@ class CompoundState(object):
     def cast(self, src_desc, dest_desc, local = False):
         '''desc = (node, type, suffix)'''
 
-        src = src_desc[0]
-        dest = dest_desc[0]
+        src, src_type, src_suffix = src_desc
+        dest, dest_type, dest_suffix = dest_desc
 
-        if src_desc[2] is None:
-            if src_desc[1] is None:
+        if src_suffix is None:
+            if src_type is None:
                 src_suffix = get_tcg_suffix(get_tcg_type(src))
             else:
-                src_suffix = get_tcg_suffix(src_desc[1])
-        else:
-            src_suffix = src_desc[2]
+                src_suffix = get_tcg_suffix(src_type)
 
-        if dest_desc[1] is None:
+        if dest_type is None:
             dest_type = get_tcg_type(dest)
-        else:
-            dest_type = dest_desc[1]
 
-        if dest_desc[2] is None:
+        if dest_suffix is None:
             dest_suffix = get_tcg_suffix(dest_type)
-        else:
-            dest_suffix = dest_desc[2]
 
         if src_suffix == dest_suffix:
             if src_suffix is not None:
@@ -479,6 +473,106 @@ class CompoundState(object):
             # create new insteance for next FuncCall
             return c_ast.ID(res_var.name, var_type = dest_type)
 
+    def get_bin_expr_param(self, rv, lv, is_commutative, support_int_rv,
+            r_shift = False
+    ):
+        rv_type, rv_suffix = get_node_desc(rv)
+        lv_type, lv_suffix = get_node_desc(lv)
+        i_suffix = ''
+
+        if rv_suffix is None:
+            # rv - non TCG
+            if lv_suffix is None:
+                # lv - non TCG
+                return None
+            else:
+                # lv - TCG
+                p1 = lv
+                suffix = lv_suffix
+                res_type = lv_type
+                if support_int_rv:
+                    # tcg func support int rv
+                    i_suffix += 'i'
+                    p2 = rv
+                else:
+                    # tcg func don't support non TCG rv
+                    p2 = self.convert_var_to_tcg(rv, res_type)
+        else:
+            # rv - TCG
+            if lv_suffix is None:
+                # lv - non TCG
+                suffix = rv_suffix
+                res_type = rv_type
+                if is_commutative and support_int_rv:
+                    i_suffix = 'i'
+                    p1 = rv
+                    p2 = lv
+                else:
+                    # tcg func don't support non TCG lv
+                    p1 = self.convert_var_to_tcg(lv, res_type)
+                    p2 = rv
+            elif lv_suffix == rv_suffix:
+                # lv - TCG
+                suffix = lv_suffix
+                if r_shift:
+                    res_type = lv_type
+                else:
+                    # if one of the parameter is unsigned the result is
+                    # unsigned too
+                    if 'signed' in rv_type:
+                        res_type = lv_type
+                    else:
+                        res_type = rv_type
+
+                p1 = lv
+                p2 = rv
+            else:
+                if r_shift:
+                    res_type = lv_type
+                    suffix = lv_suffix
+                    p1 = lv
+                    p2 = self.cast(
+                        (rv, rv_type, rv_suffix),
+                        (None, res_type, suffix)
+                    )
+                else:
+                    if 'long' in lv_type:
+                        if 'short' in rv_type:
+                            res_type = lv_type
+                            suffix = lv_suffix
+                            p1 = lv
+                            p2 = self.cast(
+                                (rv, rv_type, rv_suffix),
+                                (None, res_type, suffix)
+                            )
+                        else:
+                            # rv - tl
+                            res_type = rv_type
+                            suffix = rv_suffix
+                            p1 = self.cast(
+                                (lv, lv_type, lv_suffix),
+                                (None, res_type, suffix)
+                            )
+                            p2 = rv
+                    elif 'short' in lv_type:
+                        res_type = rv_type
+                        suffix = rv_suffix
+                        p1 = self.cast(
+                            (lv, lv_type, lv_suffix),
+                            (None, res_type, suffix)
+                        )
+                        p2 = rv
+                    else:
+                        # lv - tl
+                        res_type = lv_type
+                        suffix = lv_suffix
+                        p1 = lv
+                        p2 = self.cast(
+                            (rv, rv_type, rv_suffix),
+                            (None, res_type, suffix)
+                        )
+
+        return (res_type, suffix, i_suffix, p1, p2)
 
 # debug comment prefix
 DCP = '/* src: '
@@ -517,7 +611,7 @@ class I3SProcessing(object):
             )
 
     def generic_processing(self, node, parent, debug):
-        for child_name, child in node.children():
+        for __, child in node.children():
             self.processing(child, node, debug)
 
     def processing_ArrayRef(self, node, parent, debug):
@@ -609,12 +703,12 @@ class I3SProcessing(object):
         if node.args_type is None:
             return node
 
-        old_local = copy(cs.tcg_tmp_local_list_hold)
-
         args_count = len(node.args_type)
 
-        if args_count == 1 and node.args_type[0] == ["void"]:
+        if args_count == 1 and node.args_type[0][0] == "void":
             return node
+
+        old_local = copy(cs.tcg_tmp_local_list_hold)
 
         given_args = len(node.args.exprs)
 
@@ -687,7 +781,7 @@ class I3SProcessing(object):
             return node
 
         len_hold = len(old_local)
-        for i, v in enumerate(cs.tcg_tmp_local_list_hold):
+        for i in range(len(cs.tcg_tmp_local_list_hold)):
             if i < len_hold:
                 cs.tcg_tmp_local_list_hold[i] = old_local[i]
             else:
@@ -723,7 +817,7 @@ class I3SProcessing(object):
         if node.block_items is None:
             return
 
-        self.cs = CompoundState(prev_state = self.cs, node = node)
+        self.cs = CompoundState(prev_state = self.cs)
         cs = self.cs
 
         new_block_items = []
@@ -773,7 +867,7 @@ class I3SProcessing(object):
         ast_free, ast_cond, brcond_id, expr_list = brcond
         ast_cond = ast_free + ast_cond
 
-        label_true = cs.tcg_label_decl()
+        label_cond = cs.tcg_label_decl()
         label_false = cs.tcg_label_decl()
         label_continue = cs.tcg_label_decl()
 
@@ -782,7 +876,7 @@ class I3SProcessing(object):
 
         cs.subast.append(c_ast.FuncCall(
             c_ast.ID('gen_set_label', prefix = indent),
-            c_ast.ExprList([c_ast.ID(label_true)])
+            c_ast.ExprList([c_ast.ID(label_cond)])
         ))
 
         cs.subast = subast_init + cs.subast + ast_cond
@@ -819,7 +913,7 @@ class I3SProcessing(object):
 
         cs.subast.append(c_ast.FuncCall(
             c_ast.ID('tcg_gen_br', prefix = indent),
-            c_ast.ExprList([c_ast.ID(label_true)])
+            c_ast.ExprList([c_ast.ID(label_cond)])
         ))
 
         set_label_func = gen_terminator_label(node.stmt, indent, label_false)
@@ -929,15 +1023,15 @@ class I3SProcessing(object):
         ast_free, ast_cond, brcond_id, expr_list = brcond
         ast_cond = ast_free + ast_cond
 
-        label_true = cs.tcg_label_decl()
+        label_cond = cs.tcg_label_decl()
         label_false = cs.tcg_label_decl()
 
         self.break_label.append(label_false)
-        self.continue_label.append([label_true, False])
+        self.continue_label.append([label_cond, False])
 
         cs.subast.append(c_ast.FuncCall(
             c_ast.ID('gen_set_label', prefix = indent),
-            c_ast.ExprList([c_ast.ID(label_true)])
+            c_ast.ExprList([c_ast.ID(label_cond)])
         ))
 
         cs.subast += ast_cond
@@ -952,7 +1046,7 @@ class I3SProcessing(object):
 
         cs.subast.append(c_ast.FuncCall(
             c_ast.ID('tcg_gen_br', prefix = indent),
-            c_ast.ExprList([c_ast.ID(label_true)])
+            c_ast.ExprList([c_ast.ID(label_cond)])
         ))
 
         set_label_func = gen_terminator_label(node.stmt, indent, label_false)
@@ -1107,7 +1201,7 @@ class I3SProcessing(object):
                 )
 
     def processing_Case(self, node, parent, debug):
-        self.cs = CompoundState(prev_state = self.cs, node = node)
+        self.cs = CompoundState(prev_state = self.cs)
         cs = self.cs
 
         # We can get here only from Switch with non TCG cond
@@ -1282,36 +1376,6 @@ class I3SProcessing(object):
         self.break_label.pop()
 
     def processing_Decl(self, node, parent, debug):
-
-        def create_for_loop(count_name, const, indent):
-            return c_ast.For(
-                c_ast.Decl(
-                    name = count_name,
-                    quals = [], storage = [], funcspec = [],
-                    type = c_ast.TypeDecl(
-                        declname = "i_" + str(count),
-                        type = c_ast.IdentifierType(['int']),
-                        quals = [],
-                        prefix = ' '
-                    ),
-                    init = c_ast.Constant("int", "0", prefix = ' '),
-                    bitsize = None
-                ),
-                c_ast.BinaryOp(
-                    '<',
-                    c_ast.ID(count_name, prefix = " "),
-                    const,
-                    prefix = ' '
-                ),
-                c_ast.UnaryOp(
-                    "++",
-                    c_ast.ID(count_name),
-                    prefix = " "
-                ),
-                c_ast.Compound([], prefix = [' ', indent]),
-                prefix = indent
-            )
-
         cs = self.cs
         node_type = node.type
 
@@ -1330,6 +1394,7 @@ class I3SProcessing(object):
                 node.name = new_name
                 change_declname(node, new_name)
 
+            # TODO: need a comment
             cs.vars.add(node.name)
 
         if isinstance(node_type, (c_ast.Enum, c_ast.Union, c_ast.Struct)):
@@ -1664,7 +1729,6 @@ class I3SProcessing(object):
                     res_var = parent.lvalue
 
             if res_var is None:
-                res_var = None
                 # Try to reuse tmp variable that are already used in binary Op
                 if isinstance(expr, c_ast.ID):
                     p1_name = expr.name
@@ -1711,10 +1775,10 @@ class I3SProcessing(object):
         if rv is None:
             rv = node.right
 
-        op_desc = binary_op[node.op]
-        func_name = op_desc[0]
+        func_name, support_int_rv, is_commutative = binary_op[node.op]
 
-        param_desc = self.get_bin_expr_param(rv, lv, op_desc[2], op_desc[1],
+        param_desc = self.cs.get_bin_expr_param(rv, lv, is_commutative,
+            support_int_rv,
             r_shift = isinstance(func_name, tuple)
         )
         if param_desc is None:
@@ -1732,7 +1796,7 @@ class I3SProcessing(object):
                 # sar
                 func_name = func_name[0]
 
-        if not (op_desc[1] or 'signed' in res_type):
+        if not (support_int_rv or 'signed' in res_type):
             # only for '/' and '%'
             func_name += 'u'
         else:
@@ -1804,7 +1868,7 @@ class I3SProcessing(object):
         cs = self.cs
 
         is_commutative = op not in ('>=', '<=', '>', '<')
-        param_desc = self.get_bin_expr_param(rv, lv, is_commutative, True)
+        param_desc = self.cs.get_bin_expr_param(rv, lv, is_commutative, True)
         if param_desc is None:
             return None
         res_type, suffix, i_str, p1, p2 = param_desc
@@ -2079,108 +2143,6 @@ class I3SProcessing(object):
 
         return duplicate_simple_node(lvalue)
 
-    def get_bin_expr_param(self, rv, lv, is_commutative, support_int_rv,
-            r_shift = False
-    ):
-        cs = self.cs
-        rv_type, rv_suffix = get_node_desc(rv)
-        lv_type, lv_suffix = get_node_desc(lv)
-        i_suffix = ''
-
-        if rv_suffix is None:
-            # rv - non TCG
-            if lv_suffix is None:
-                # lv - non TCG
-                return None
-            else:
-                # lv - TCG
-                p1 = lv
-                suffix = lv_suffix
-                res_type = lv_type
-                if support_int_rv:
-                    # tcg func support int rv
-                    i_suffix += 'i'
-                    p2 = rv
-                else:
-                    # tcg func don't support non TCG rv
-                    p2 = cs.convert_var_to_tcg(rv, res_type)
-        else:
-            # rv - TCG
-            if lv_suffix is None:
-                # lv - non TCG
-                suffix = rv_suffix
-                res_type = rv_type
-                if is_commutative and support_int_rv:
-                    i_suffix = 'i'
-                    p1 = rv
-                    p2 = lv
-                else:
-                    # tcg func don't support non TCG lv
-                    p1 = cs.convert_var_to_tcg(lv, res_type)
-                    p2 = rv
-            elif lv_suffix == rv_suffix:
-                # lv - TCG
-                suffix = lv_suffix
-                if r_shift:
-                    res_type = lv_type
-                else:
-                    # if one of the parameter is unsigned the result is
-                    # unsigned too
-                    if 'signed' in rv_type:
-                        res_type = lv_type
-                    else:
-                        res_type = rv_type
-
-                p1 = lv
-                p2 = rv
-            else:
-                if r_shift:
-                    res_type = lv_type
-                    suffix = lv_suffix
-                    p1 = lv
-                    p2 = cs.cast(
-                        (rv, rv_type, rv_suffix),
-                        (None, res_type, suffix)
-                    )
-                else:
-                    if 'long' in lv_type:
-                        if 'short' in rv_type:
-                            res_type = lv_type
-                            suffix = lv_suffix
-                            p1 = lv
-                            p2 = cs.cast(
-                                (rv, rv_type, rv_suffix),
-                                (None, res_type, suffix)
-                            )
-                        else:
-                            # rv - tl
-                            res_type = rv_type
-                            suffix = rv_suffix
-                            p1 = cs.cast(
-                                (lv, lv_type, lv_suffix),
-                                (None, res_type, suffix)
-                            )
-                            p2 = rv
-                    elif 'short' in lv_type:
-                        res_type = rv_type
-                        suffix = rv_suffix
-                        p1 = cs.cast(
-                            (lv, lv_type, lv_suffix),
-                            (None, res_type, suffix)
-                        )
-                        p2 = rv
-                    else:
-                        # lv - tl
-                        res_type = lv_type
-                        suffix = lv_suffix
-                        p1 = lv
-                        p2 = cs.cast(
-                            (rv, rv_type, rv_suffix),
-                            (None, res_type, suffix)
-                        )
-
-        return (res_type, suffix, i_suffix, p1, p2)
-
     def handle_brcond(self, node):
         cs = self.cs
         # If cond have tcg type we insert label under cond processing
@@ -2216,6 +2178,7 @@ class I3SProcessing(object):
                 cs.tcg_tmp_list = tcg_tmp_list
                 cs.tcg_tmp_list_hold = tcg_tmp_list_hold
 
+                # XXX: because of `cs.subast = []` above, this is `False`
                 if cs.subast:
                     # this case can only happen when the condition
                     # contains a FuncCall with tcg param
@@ -2285,7 +2248,136 @@ class I3SProcessing(object):
         cs.subast = local_subast
 
 
+def create_for_loop(count_name, const, indent):
+    return c_ast.For(
+        c_ast.Decl(
+            name = count_name,
+            quals = [], storage = [], funcspec = [],
+            type = c_ast.TypeDecl(
+                declname = count_name,
+                type = c_ast.IdentifierType(['int']),
+                quals = [],
+                prefix = ' '
+            ),
+            init = c_ast.Constant("int", "0", prefix = ' '),
+            bitsize = None
+        ),
+        c_ast.BinaryOp(
+            '<',
+            c_ast.ID(count_name, prefix = " "),
+            const,
+            prefix = ' '
+        ),
+        c_ast.UnaryOp(
+            "++",
+            c_ast.ID(count_name),
+            prefix = " "
+        ),
+        c_ast.Compound([], prefix = [' ', indent]),
+        prefix = indent
+    )
+
+
+def determine_var_type(node, ns = {}, func_params = {}):
+    """ Determine variable (ID) type.
+
+        ns is dictionary containing current name space:
+            Key: ID name
+            Value: [ID type, is_local]
+    """
+
+    if isinstance(
+        node,
+        (
+            c_ast.Label,
+            c_ast.Goto,
+            c_ast.DoWhile,
+            c_ast.While,
+            c_ast.Case,
+            c_ast.Default,
+        )
+    ):
+        for v in ns.values():
+            v[1] = True
+        for __, child in node.children():
+            determine_var_type(child, ns, func_params)
+
+    elif isinstance(node, c_ast.FuncCall):
+        for v in ns.values():
+            v[1] = True
+        if node.name.name in func_params:
+            node.args_type = func_params[node.name.name]
+
+        if node.args:
+            determine_var_type(node.args, ns, func_params)
+
+    elif isinstance(node, c_ast.For):
+        if node.init is not None:
+            determine_var_type(node.init, ns, func_params)
+        for v in ns.values():
+            v[1] = True
+        if node.cond is not None:
+            determine_var_type(node.cond, ns, func_params)
+        if node.next is not None:
+            determine_var_type(node.next, ns, func_params)
+        determine_var_type(node.stmt, ns, func_params)
+
+    elif isinstance(node, c_ast.If):
+        determine_var_type(node.cond, ns, func_params)
+        for v in ns.values():
+            v[1] = True
+        determine_var_type(node.iftrue, ns, func_params)
+        if node.iffalse is not None:
+            determine_var_type(node.iffalse, ns, func_params)
+
+    elif isinstance(node, c_ast.Compound):
+        if node.block_items is not None:
+            # We don't need to deepcopy namespace.
+            # If new variable has been declared,
+            # list link will be changed to new.
+            # If variable has been used,
+            # value in all parent name space will be updated.
+            ns = ns.copy()
+            for child in node.block_items:
+                determine_var_type(child, ns, func_params)
+
+    elif isinstance(node, c_ast.FuncDef):
+        func_name = node.decl.type.type.declname
+        func_params[func_name] = []
+        body_ns = ns.copy()
+        for p in node.decl.type.args.params:
+            while not (
+                    isinstance(p, c_ast.TypeDecl)
+                and isinstance(p.type, c_ast.IdentifierType)
+            ):
+                p = p.type
+            body_ns[p.declname] = [p.type, False]
+            func_params[func_name].append(p.type.names)
+
+        determine_var_type(node.body, body_ns)
+
+    elif (
+            isinstance(node, c_ast.TypeDecl)
+        and isinstance(node.type, c_ast.IdentifierType)
+    ):
+        # TODO: support typedef
+        ns[node.declname] = [node.type, False]
+
+    elif isinstance(node, c_ast.ID):
+        if node.name in ns:
+            id_desc = ns[node.name]
+            node.var_type = id_desc[0].names
+            if id_desc[1]:
+                l = node.var_type
+                if 'tcg' in l:
+                    id_desc[0].is_local_tcg = True
+
+    else:
+        for __, child in node.children():
+            determine_var_type(child, ns, func_params)
+
+
 def convert_i3s_to_c(ast, debug = False):
-    ast.determine_var_type()
+    determine_var_type(ast)
     i3s_class = I3SProcessing()
     i3s_class.processing(ast, None, debug)
