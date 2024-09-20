@@ -2281,7 +2281,7 @@ def create_for_loop(count_name, const, indent):
 def determine_var_type(node, ns = {}, func_params = {}):
     """ Determine variable (ID) type.
 
-        ns is dictonary containing current name space:
+        ns is dictionary containing current name space:
             Key: ID name
             Value: [ID type, is_local]
     """
