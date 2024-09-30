@@ -94,19 +94,19 @@ int test_decl(TCGv_i32 param) {
     tcg_temp_free(tcg_tl);
     tcg_temp_free(pointer);
     tcg_temp_free(tcg_tl_signed);
-    tcg_temp_free(tcg_i32_1);
-    tcg_temp_free(tcg_i32_2);
-    tcg_temp_free(tcg_i64_1);
-    tcg_temp_free(tcg_i64_2);
+    tcg_temp_free_i32(tcg_i32_1);
+    tcg_temp_free_i32(tcg_i32_2);
+    tcg_temp_free_i64(tcg_i64_1);
+    tcg_temp_free_i64(tcg_i64_2);
     for (int i_0 = 0; i_0 < 2; ++i_0) {
         for (int i_1 = 0; i_1 < 5; ++i_1) {
             for (int i_2 = 0; i_2 < 7; ++i_2) {
-                tcg_temp_free(array_test[i_0][i_1][i_2]);
+                tcg_temp_free_tl(array_test[i_0][i_1][i_2]);
             }
         }
     }
     for (int i_0 = 0; i_0 < 12; ++i_0) {
-        tcg_temp_free(array_test2[i_0]);
+        tcg_temp_free_tl(array_test2[i_0]);
     }
 }
 
@@ -427,21 +427,21 @@ int test_expr(void) {
     c_var_1 = + c_var_1;
     int shift = sizeof(int) * 8 - sizeof(c_var_1);
     tcg_temp_free(i3s_t0_tl);
-    tcg_temp_free(i3s_t1_i64);
-    tcg_temp_free(i3s_t2_i32);
+    tcg_temp_free_i64(i3s_t1_i64);
+    tcg_temp_free_i32(i3s_t2_i32);
     tcg_temp_free(i3s_t3_tl);
-    tcg_temp_free(i3s_t4_i64);
-    tcg_temp_free(i3s_t5_i32);
-    tcg_temp_free(i3s_t6_i32);
+    tcg_temp_free_i64(i3s_t4_i64);
+    tcg_temp_free_i32(i3s_t5_i32);
+    tcg_temp_free_i32(i3s_t6_i32);
     tcg_temp_free(i3s_t7_tl);
     tcg_temp_free(i3s_t8_tl);
     tcg_temp_free(tcg_tl_1);
     tcg_temp_free(tcg_tl_2);
     tcg_temp_free(tcg_tl_signed);
-    tcg_temp_free(tcg_i32_1);
-    tcg_temp_free(tcg_i32_2);
-    tcg_temp_free(tcg_i64_1);
-    tcg_temp_free(tcg_i64_2);
+    tcg_temp_free_i32(tcg_i32_1);
+    tcg_temp_free_i32(tcg_i32_2);
+    tcg_temp_free_i64(tcg_i64_1);
+    tcg_temp_free_i64(tcg_i64_2);
 }
 
 int if_test(void) {
@@ -531,17 +531,17 @@ int if_test(void) {
     tcg_gen_addi_i64(i3s_t1_i64, boris, 5);
     TCGLabel *i3s_label_7 = gen_new_label();
     tcg_gen_brcond_i64(TCG_COND_NE, boris, i3s_t1_i64, i3s_label_7);
-    tcg_temp_free(i3s_t1_i64);
+    tcg_temp_free_i64(i3s_t1_i64);
     TCGv_i64 i3s_t2_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t2_i64, boris, 5);
     TCGLabel *i3s_label_8 = gen_new_label();
     tcg_gen_brcond_i64(TCG_COND_EQ, boris, i3s_t2_i64, i3s_label_8);
-    tcg_temp_free(i3s_t2_i64);
+    tcg_temp_free_i64(i3s_t2_i64);
     // if (boris != 0)
     TCGv_i64 i3s_t3_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t3_i64, boris, 5);
     tcg_gen_muli_i64(boris, i3s_t3_i64, 16);
-    tcg_temp_free(i3s_t3_i64);
+    tcg_temp_free_i64(i3s_t3_i64);
     TCGLabel *i3s_label_9 = gen_new_label();
     tcg_gen_br(i3s_label_9);
     /* src: end of the "if" */
@@ -550,12 +550,12 @@ int if_test(void) {
     tcg_gen_addi_i64(i3s_t4_i64, boris, 5);
     TCGLabel *i3s_label_10 = gen_new_label();
     tcg_gen_brcond_i64(TCG_COND_LT, boris, i3s_t4_i64, i3s_label_10);
-    tcg_temp_free(i3s_t4_i64);
+    tcg_temp_free_i64(i3s_t4_i64);
     // else if (boris >= boris + 5)
     TCGv_i64 i3s_t5_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t5_i64, boris, 5);
     tcg_gen_muli_i64(boris, i3s_t5_i64, 16);
-    tcg_temp_free(i3s_t5_i64);
+    tcg_temp_free_i64(i3s_t5_i64);
     tcg_gen_br(i3s_label_9);
     /* src: end of the "if" */
     gen_set_label(i3s_label_10);
@@ -563,7 +563,7 @@ int if_test(void) {
     TCGv_i64 i3s_t6_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t6_i64, boris, 5);
     tcg_gen_muli_i64(boris, i3s_t6_i64, 16);
-    tcg_temp_free(i3s_t6_i64);
+    tcg_temp_free_i64(i3s_t6_i64);
     gen_set_label(i3s_label_9);
     TCGLabel *i3s_label_11 = gen_new_label();
     tcg_gen_br(i3s_label_11);
@@ -572,17 +572,17 @@ int if_test(void) {
     TCGv_i64 i3s_t7_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t7_i64, boris, 5);
     tcg_gen_brcond_i64(TCG_COND_LE, boris, i3s_t7_i64, i3s_label_11);
-    tcg_temp_free(i3s_t7_i64);
+    tcg_temp_free_i64(i3s_t7_i64);
     // else if (boris > 6)
     TCGv_i64 i3s_t8_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t8_i64, boris, 5);
     tcg_gen_muli_i64(boris, i3s_t8_i64, 16);
-    tcg_temp_free(i3s_t8_i64);
+    tcg_temp_free_i64(i3s_t8_i64);
     gen_set_label(i3s_label_11);
 
     c_var = N;
-    tcg_temp_free(boris);
-    tcg_temp_free(i3s_t0_local_i32);
+    tcg_temp_free_i64(boris);
+    tcg_temp_free_i32(i3s_t0_local_i32);
 }
 
 int switch_test(void) {
@@ -688,7 +688,7 @@ int switch_test(void) {
         TCGv_i32 i3s_t0_local_i32 = tcg_temp_local_new_i32();
         tcg_gen_movi_i32(i3s_t0_local_i32, a + 1);
         test_decl(i3s_t0_local_i32);
-        tcg_temp_free(i3s_t0_local_i32);
+        tcg_temp_free_i32(i3s_t0_local_i32);
     }
     default:
     {
@@ -728,7 +728,7 @@ int switch_test(void) {
         tcg_gen_trunc_tl_i32(i3s_t0_local_i32, i3s_t5_tl);
         tcg_temp_free(i3s_t5_tl);
         tcg_gen_movi_tl(b, 1 + test_decl(i3s_t0_local_i32));
-        tcg_temp_free(i3s_t0_local_i32);
+        tcg_temp_free_i32(i3s_t0_local_i32);
     }
     }
     tcg_temp_free(x);
@@ -963,7 +963,7 @@ int test_duplicate_vars(void) {
         tcg_temp_free(test_0);
         tcg_temp_free(test_1);
         tcg_temp_free(test);
-        tcg_temp_free(i3s_t0_local_i32);
+        tcg_temp_free_i32(i3s_t0_local_i32);
     }
 
     TCGv test_33 = tcg_temp_new();
@@ -992,7 +992,7 @@ int test_duplicate_vars(void) {
     TCGv i_2 = tcg_temp_new();
     tcg_temp_free(i_2);
     tcg_temp_free(i);
-    tcg_temp_free(i3s_t0_local_i32);
+    tcg_temp_free_i32(i3s_t0_local_i32);
 }
 
 int for_test(void) {
@@ -1037,7 +1037,7 @@ int for_test(void) {
         break;
         continue;
         tcg_temp_free(stop);
-        tcg_temp_free(start);
+        tcg_temp_free_i64(start);
         return (a * 7);
     } while (a);
     // start = start * 6 + start;
@@ -1045,7 +1045,7 @@ int for_test(void) {
     tcg_gen_muli_i64(i3s_t4_i64, start, 6);
     tcg_gen_add_i64(start, i3s_t4_i64, start);
     a = 7;
-    tcg_temp_free(i3s_t4_i64);
+    tcg_temp_free_i64(i3s_t4_i64);
     //break;
     tcg_gen_br(i3s_label_1);
 
@@ -1057,10 +1057,10 @@ int for_test(void) {
         TCGv_i64 i3s_t0_i64 = tcg_temp_new_i64();
         tcg_gen_muli_i64(i3s_t0_i64, start, 7);
         tcg_gen_add_i64(start, i3s_t0_i64, start);
-        tcg_temp_free(i3s_t0_i64);
+        tcg_temp_free_i64(i3s_t0_i64);
         tcg_temp_free(i3s_t5_tl);
         tcg_temp_free(stop);
-        tcg_temp_free(start);
+        tcg_temp_free_i64(start);
         //return
         return start;
     }
@@ -1073,7 +1073,7 @@ int for_test(void) {
     TCGv_i64 i3s_t6_i64 = tcg_temp_new_i64();
     tcg_gen_addi_i64(i3s_t6_i64, start, 5);
     tcg_gen_brcond_i64(TCG_COND_LE, start, i3s_t6_i64, i3s_label_4);
-    tcg_temp_free(i3s_t6_i64);
+    tcg_temp_free_i64(i3s_t6_i64);
     // start = start * stop;
     TCGv i3s_t7_tl = tcg_temp_new();
     tcg_gen_trunc_i64_tl(i3s_t7_tl, start);
@@ -1095,19 +1095,19 @@ int for_test(void) {
     tcg_gen_muli_i64(i3s_t8_i64, start, 6);
     tcg_gen_add_i64(start, i3s_t8_i64, start);
     TCGv chech_local_free = tcg_temp_local_new();
-    tcg_temp_free(i3s_t8_i64);
+    tcg_temp_free_i64(i3s_t8_i64);
     while_test(chech_local_free);
     TCGv_i64 i3s_t9_i64 = tcg_temp_new_i64();
     tcg_gen_mov_i64(i3s_t9_i64, start);
     tcg_gen_addi_i64(start, start, 1);
-    tcg_temp_free(i3s_t9_i64);
+    tcg_temp_free_i64(i3s_t9_i64);
     tcg_gen_br(i3s_label_0);
     // end for
     gen_set_label(i3s_label_1);
 
     tcg_gen_movi_tl(stop, END_MACRO);
     tcg_temp_free(stop);
-    tcg_temp_free(start);
+    tcg_temp_free_i64(start);
     tcg_temp_free(chech_local_free);
 }
 
@@ -1150,7 +1150,7 @@ int func_call_test(void) {
         helper(i3s_t0_local_i32, i3s_t1_local_tl);
         tcg_gen_movi_i32(i3s_t0_local_i32, a);
         a = helper(i3s_t0_local_i32, b);
-        tcg_temp_free(i3s_t0_local_i32);
+        tcg_temp_free_i32(i3s_t0_local_i32);
         tcg_temp_free(i3s_t1_local_tl);
     } else {
         // helper(a, a);
@@ -1179,7 +1179,7 @@ int func_call_test(void) {
         tcg_gen_mov_tl(i3s_t1_local_tl, i3s_t0_tl);
         tcg_temp_free(i3s_t0_tl);
         tcg_gen_addi_tl(b, b, helper(i3s_t0_local_i32, i3s_t1_local_tl));
-        tcg_temp_free(i3s_t0_local_i32);
+        tcg_temp_free_i32(i3s_t0_local_i32);
         tcg_temp_free(i3s_t1_local_tl);
     }
 
@@ -1200,9 +1200,9 @@ int func_call_test(void) {
     tcg_temp_free(i3s_t3_tl);
     helper(i3s_t0_local_i32, helper(i3s_t2_local_i32, i3s_t1_local_tl));
     tcg_temp_free(b);
-    tcg_temp_free(i3s_t0_local_i32);
+    tcg_temp_free_i32(i3s_t0_local_i32);
     tcg_temp_free(i3s_t1_local_tl);
-    tcg_temp_free(i3s_t2_local_i32);
+    tcg_temp_free_i32(i3s_t2_local_i32);
 }
 
 #endif /* INCLUDE_I3S_C */

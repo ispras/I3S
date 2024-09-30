@@ -339,9 +339,11 @@ class CompoundState(object):
                 cs.tcg_tmp_local_list = []
                 cs.tcg_tmp_local_list_hold = []
 
-        for v in free_list:
+        for v, suffix in free_list:
+            if suffix == "_tl":
+                suffix = ""
             self.subast.append(c_ast.FuncCall(
-                c_ast.ID('tcg_temp_free', prefix = self.indent),
+                c_ast.ID('tcg_temp_free' + suffix, prefix = self.indent),
                 c_ast.ExprList([c_ast.ID(v)])
             ))
 
@@ -355,13 +357,13 @@ class CompoundState(object):
         if local:
             name = 'i3s_t' + str(self.tcg_tmp_local_count) + '_local' + suffix
             init_func = 'tcg_temp_local_new'
-            self.tcg_tmp_local_list.append(name)
+            self.tcg_tmp_local_list.append((name, suffix))
             self.tcg_tmp_local_list_hold.append(True)
             self.tcg_tmp_local_count += 1
         else:
             init_func = 'tcg_temp_new'
             name = 'i3s_t' + str(self.tcg_tmp_count) + suffix
-            self.tcg_tmp_list.append(name)
+            self.tcg_tmp_list.append((name, suffix))
             self.tcg_tmp_list_hold.append(True)
             self.tcg_tmp_count += 1
 
@@ -397,9 +399,9 @@ class CompoundState(object):
             tmp_list = self.tcg_tmp_list
 
         for i, flag in enumerate(hold_list):
-            if flag is False and tmp_list[i].endswith(suffix):
+            if flag is False and tmp_list[i][1] == suffix:
                 hold_list[i] = True
-                return c_ast.ID(tmp_list[i], var_type = temp_type)
+                return c_ast.ID(tmp_list[i][0], var_type = temp_type)
         else:
             return self.tcg_temp_decl(temp_type, local)
 
@@ -752,18 +754,22 @@ class I3SProcessing(object):
                     for e in cs.subast:
                         set_node_prefix(e, cs.indent)
 
-                if res.name in cs.tcg_tmp_list:
-                    local_var = cs.get_unoccupied_tmp_tcg(at, True)
-                    suffix = get_tcg_suffix(at)
-                    res.prefix = ' '
-                    self.cs.subast.append(c_ast.FuncCall(
-                        c_ast.ID('tcg_gen_mov' + suffix, prefix = cs.indent),
-                        c_ast.ExprList([
-                            local_var,
-                            res
-                        ]),
-                    ))
-                    res = duplicate_simple_node(local_var)
+                for tmp_name, __ in cs.tcg_tmp_list:
+                    if tmp_name == res.name:
+                        local_var = cs.get_unoccupied_tmp_tcg(at, True)
+                        res.prefix = ' '
+                        suffix = get_tcg_suffix(at)
+                        self.cs.subast.append(c_ast.FuncCall(
+                            c_ast.ID('tcg_gen_mov' + suffix,
+                                prefix = cs.indent
+                            ),
+                            c_ast.ExprList([
+                                local_var,
+                                res
+                            ]),
+                        ))
+                        res = duplicate_simple_node(local_var)
+                        break
 
                 if arg is not res:
                     if i > 0:
@@ -1270,18 +1276,20 @@ class I3SProcessing(object):
             self.processing(node.stmt, node, debug)
             return
 
-        if cond.name in cs.tcg_tmp_list:
-            local_var = cs.get_unoccupied_tmp_tcg(cond_type, True)
-            cond.prefix = ' '
-            self.cs.subast.append(c_ast.FuncCall(
-                c_ast.ID('tcg_gen_mov' + cond_suffix),
-                c_ast.ExprList([
-                    local_var,
-                    cond
-                ]),
-            ))
-            cond = duplicate_simple_node(local_var)
-            cond.prefix = ''
+        for tmp_name, __ in cs.tcg_tmp_list:
+            if cond.name == tmp_name:
+                local_var = cs.get_unoccupied_tmp_tcg(cond_type, True)
+                cond.prefix = ' '
+                self.cs.subast.append(c_ast.FuncCall(
+                    c_ast.ID('tcg_gen_mov' + cond_suffix),
+                    c_ast.ExprList([
+                        local_var,
+                        cond
+                    ]),
+                ))
+                cond = duplicate_simple_node(local_var)
+                cond.prefix = ''
+                break
 
         for e in cs.subast:
             set_node_prefix(e, cs.indent)
@@ -1442,14 +1450,17 @@ class I3SProcessing(object):
         if identifierType.is_local_tcg:
             alloc_name += '_local'
         alloc_name += '_new'
+        suffix = "_tl"
 
         if idx is not None:
             if type_names[idx] == 'short':
                 alloc_name += '_i32'
                 var_type += '_i32'
+                suffix = '_i32'
             elif type_names[idx] == 'long':
                 alloc_name += '_i64'
                 var_type += '_i64'
+                suffix = '_i64'
             else:
                 incorrect_names = True
 
@@ -1533,7 +1544,7 @@ class I3SProcessing(object):
 
                 for_free.stmt.block_items.append(
                     c_ast.FuncCall(
-                        c_ast.ID("tcg_temp_free", prefix = indent),
+                        c_ast.ID("tcg_temp_free" + suffix, prefix = indent),
                         c_ast.ExprList([var_free])
                     )
                 )
@@ -1580,9 +1591,9 @@ class I3SProcessing(object):
         )
 
         if identifierType.is_local_tcg:
-            cs.tcg_local_list.append(node.name)
+            cs.tcg_local_list.append((node.name, suffix))
         else:
-            cs.tcg_list.append(node.name)
+            cs.tcg_list.append((node.name, suffix))
 
     def processing_Cast(self, node, parent, debug):
         to_type = set(node.to_type.type.type.names)
@@ -1732,9 +1743,9 @@ class I3SProcessing(object):
                 # Try to reuse tmp variable that are already used in binary Op
                 if isinstance(expr, c_ast.ID):
                     p1_name = expr.name
-                    for v in cs.tcg_tmp_list:
-                        if v == p1_name:
-                            res_var = c_ast.ID(v)
+                    for v_name, __ in cs.tcg_tmp_list:
+                        if v_name == p1_name:
+                            res_var = c_ast.ID(v_name)
                             break
 
                 if res_var is None:
@@ -1816,17 +1827,17 @@ class I3SProcessing(object):
             # Try to reuse tmp variable that are already used in binary Op
             if isinstance(p1, c_ast.ID):
                 p1_name = p1.name
-                for v in cs.tcg_tmp_list:
-                    if v == p1_name:
-                        res_var = c_ast.ID(v)
+                for v_name, __ in cs.tcg_tmp_list:
+                    if v_name == p1_name:
+                        res_var = c_ast.ID(v_name)
                         break
 
             if isinstance(p2, c_ast.ID):
                 p2_name = p2.name
-                for i, v in enumerate(cs.tcg_tmp_list):
-                    if v == p2_name:
+                for i, (v_name, __) in enumerate(cs.tcg_tmp_list):
+                    if v_name == p2_name:
                         if res_var is None:
-                            res_var = c_ast.ID(v)
+                            res_var = c_ast.ID(v_name)
                         else:
                             cs.tcg_tmp_list_hold[i] = False
                         break
@@ -1893,17 +1904,17 @@ class I3SProcessing(object):
                 # Try to reuse tmp variable that are already used in binary Op
                 if isinstance(p1, c_ast.ID):
                     p1_name = p1.name
-                    for v in cs.tcg_tmp_list:
-                        if v == p1_name:
-                            res_var = c_ast.ID(v, var_type = res_type)
+                    for v_name, __ in cs.tcg_tmp_list:
+                        if v_name == p1_name:
+                            res_var = c_ast.ID(v_name, var_type = res_type)
                             break
 
                 if isinstance(p2, c_ast.ID):
                     p2_name = p2.name
-                    for i, v in enumerate(cs.tcg_tmp_list):
-                        if v == p2_name:
+                    for i, (v_name, __) in enumerate(cs.tcg_tmp_list):
+                        if v_name == p2_name:
                             if res_var is None:
-                                res_var = c_ast.ID(v, var_type = res_type)
+                                res_var = c_ast.ID(v_name, var_type = res_type)
                             else:
                                 cs.tcg_tmp_list_hold[i] = False
                             break
