@@ -264,7 +264,7 @@ def change_declname(node, new_name):
 
 
 class CompoundState(object):
-    def __init__(self, prev_state = None):
+    def __init__(self, prev_state = None, temp_free_needed = True):
 
         self.vars = set()
         # names to change
@@ -288,6 +288,8 @@ class CompoundState(object):
         self.tcg_tmp_local_count = 0
         self.tcg_label_count = 0
         self.subast = []
+
+        self.temp_free_needed = temp_free_needed
 
     def tcg_label_decl(self):
         name = 'i3s_label_' + str(self.tcg_label_count)
@@ -324,6 +326,9 @@ class CompoundState(object):
         in 'cs' to current CS subast (self.cs.subast).
         If 'do_clean' is True lists with temp will be clean.
         '''
+        if not self.temp_free_needed:
+            return
+
         if cs is None:
             cs = self
 
@@ -596,7 +601,7 @@ def insert_debug_info(prefix, comment):
 
 
 class I3SProcessing(object):
-    def __init__(self, locals_enabled = True):
+    def __init__(self, locals_enabled = True, temp_free_needed = True):
         self.cs = None
         self.break_label = []
         # 'continue_label' contains list [label name, is used] or None
@@ -604,6 +609,7 @@ class I3SProcessing(object):
         self.continue_label = []
 
         self.locals_enabled = locals_enabled
+        self.temp_free_needed = temp_free_needed
 
         self.generator = c_generator.CGenerator()
 
@@ -827,7 +833,9 @@ class I3SProcessing(object):
         if node.block_items is None:
             return
 
-        self.cs = CompoundState(prev_state = self.cs)
+        self.cs = CompoundState(prev_state = self.cs,
+            temp_free_needed = self.temp_free_needed,
+        )
         cs = self.cs
 
         new_block_items = []
@@ -1211,7 +1219,9 @@ class I3SProcessing(object):
                 )
 
     def processing_Case(self, node, parent, debug):
-        self.cs = CompoundState(prev_state = self.cs)
+        self.cs = CompoundState(prev_state = self.cs,
+            temp_free_needed = self.temp_free_needed,
+        )
         cs = self.cs
 
         # We can get here only from Switch with non TCG cond
@@ -2397,9 +2407,11 @@ def determine_var_type(node, ns = {}, func_params = {}):
 def convert_i3s_to_c(ast,
     debug = False,
     locals_enabled = True,
+    temp_free_needed = True,
 ):
     determine_var_type(ast)
     i3s_class = I3SProcessing(
         locals_enabled = locals_enabled,
+        temp_free_needed = temp_free_needed,
     )
     i3s_class.processing(ast, None, debug)
