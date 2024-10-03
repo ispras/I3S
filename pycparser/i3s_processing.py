@@ -596,12 +596,14 @@ def insert_debug_info(prefix, comment):
 
 
 class I3SProcessing(object):
-    def __init__(self):
+    def __init__(self, locals_enabled = True):
         self.cs = None
         self.break_label = []
         # 'continue_label' contains list [label name, is used] or None
         # flag 'is used' is needed to avoid extra label generation
         self.continue_label = []
+
+        self.locals_enabled = locals_enabled
 
         self.generator = c_generator.CGenerator()
 
@@ -749,14 +751,16 @@ class I3SProcessing(object):
                     res = cs.cast(
                         (p_arg, None, None),
                         (None, at, None),
-                        True
+                        True and self.locals_enabled
                     )
                     for e in cs.subast:
                         set_node_prefix(e, cs.indent)
 
                 for tmp_name, __ in cs.tcg_tmp_list:
                     if tmp_name == res.name:
-                        local_var = cs.get_unoccupied_tmp_tcg(at, True)
+                        local_var = cs.get_unoccupied_tmp_tcg(at,
+                            True and self.locals_enabled
+                        )
                         res.prefix = ' '
                         suffix = get_tcg_suffix(at)
                         self.cs.subast.append(c_ast.FuncCall(
@@ -1278,7 +1282,9 @@ class I3SProcessing(object):
 
         for tmp_name, __ in cs.tcg_tmp_list:
             if cond.name == tmp_name:
-                local_var = cs.get_unoccupied_tmp_tcg(cond_type, True)
+                local_var = cs.get_unoccupied_tmp_tcg(cond_type,
+                    True and self.locals_enabled
+                )
                 cond.prefix = ' '
                 self.cs.subast.append(c_ast.FuncCall(
                     c_ast.ID('tcg_gen_mov' + cond_suffix),
@@ -1447,7 +1453,7 @@ class I3SProcessing(object):
         var_type = 'TCGv'
         alloc_name = 'tcg_temp'
 
-        if identifierType.is_local_tcg:
+        if identifierType.is_local_tcg and self.locals_enabled:
             alloc_name += '_local'
         alloc_name += '_new'
         suffix = "_tl"
@@ -2388,7 +2394,12 @@ def determine_var_type(node, ns = {}, func_params = {}):
             determine_var_type(child, ns, func_params)
 
 
-def convert_i3s_to_c(ast, debug = False):
+def convert_i3s_to_c(ast,
+    debug = False,
+    locals_enabled = True,
+):
     determine_var_type(ast)
-    i3s_class = I3SProcessing()
+    i3s_class = I3SProcessing(
+        locals_enabled = locals_enabled,
+    )
     i3s_class.processing(ast, None, debug)
