@@ -757,7 +757,7 @@ class I3SProcessing(object):
                     res = cs.cast(
                         (p_arg, None, None),
                         (None, at, None),
-                        True and self.locals_enabled
+                        self.locals_enabled
                     )
                     for e in cs.subast:
                         set_node_prefix(e, cs.indent)
@@ -765,7 +765,7 @@ class I3SProcessing(object):
                 for tmp_name, __ in cs.tcg_tmp_list:
                     if tmp_name == res.name:
                         local_var = cs.get_unoccupied_tmp_tcg(at,
-                            True and self.locals_enabled
+                            self.locals_enabled
                         )
                         res.prefix = ' '
                         suffix = get_tcg_suffix(at)
@@ -1293,7 +1293,7 @@ class I3SProcessing(object):
         for tmp_name, __ in cs.tcg_tmp_list:
             if cond.name == tmp_name:
                 local_var = cs.get_unoccupied_tmp_tcg(cond_type,
-                    True and self.locals_enabled
+                    self.locals_enabled
                 )
                 cond.prefix = ' '
                 self.cs.subast.append(c_ast.FuncCall(
