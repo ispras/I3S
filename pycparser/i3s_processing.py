@@ -415,7 +415,7 @@ class CompoundState(object):
 
     def convert_var_to_tcg(self, val, res_type):
         suffix = get_tcg_suffix(res_type)
-        tmp = self.get_unoccupied_tmp_tcg(suffix)
+        tmp = self.get_unoccupied_tmp_tcg(res_type)
 
         if isinstance(val, c_ast.Paren):
             val = val.expr
