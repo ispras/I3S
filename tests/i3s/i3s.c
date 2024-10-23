@@ -666,4 +666,8 @@ int func_call_test() {
     helper(a + 1, helper(a + 1, b + b));
 }
 
+int no_args_func_call_test() {
+	func_call_test();
+}
+
 #endif /* INCLUDE_I3S_C */

@@ -1205,4 +1205,8 @@ int func_call_test() {
     tcg_temp_free_i32(i3s_t2_local_i32);
 }
 
+int no_args_func_call_test() {
+	func_call_test();
+}
+
 #endif /* INCLUDE_I3S_C */
