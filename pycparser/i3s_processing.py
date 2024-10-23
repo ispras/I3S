@@ -264,7 +264,10 @@ def change_declname(node, new_name):
 
 
 class CompoundState(object):
-    def __init__(self, prev_state = None):
+
+    trunc_func_prefix = "tcg_gen_trunc"
+
+    def __init__(self, prev_state = None, temp_free_needed = True):
 
         self.vars = set()
         # names to change
@@ -288,6 +291,8 @@ class CompoundState(object):
         self.tcg_tmp_local_count = 0
         self.tcg_label_count = 0
         self.subast = []
+
+        self.temp_free_needed = temp_free_needed
 
     def tcg_label_decl(self):
         name = 'i3s_label_' + str(self.tcg_label_count)
@@ -324,6 +329,9 @@ class CompoundState(object):
         in 'cs' to current CS subast (self.cs.subast).
         If 'do_clean' is True lists with temp will be clean.
         '''
+        if not self.temp_free_needed:
+            return
+
         if cs is None:
             cs = self
 
@@ -407,7 +415,7 @@ class CompoundState(object):
 
     def convert_var_to_tcg(self, val, res_type):
         suffix = get_tcg_suffix(res_type)
-        tmp = self.get_unoccupied_tmp_tcg(suffix)
+        tmp = self.get_unoccupied_tmp_tcg(res_type)
 
         if isinstance(val, c_ast.Paren):
             val = val.expr
@@ -456,7 +464,7 @@ class CompoundState(object):
                 + ('' if 'signed' in dest_type else 'u') \
                 + src_suffix + dest_suffix
         else:
-            func_name = 'tcg_gen_trunc' + src_suffix + dest_suffix
+            func_name = self.trunc_func_prefix + src_suffix + dest_suffix
 
         set_node_prefix(src, ' ')
         if dest is not None:
@@ -596,12 +604,15 @@ def insert_debug_info(prefix, comment):
 
 
 class I3SProcessing(object):
-    def __init__(self):
+    def __init__(self, locals_enabled = True, temp_free_needed = True):
         self.cs = None
         self.break_label = []
         # 'continue_label' contains list [label name, is used] or None
         # flag 'is used' is needed to avoid extra label generation
         self.continue_label = []
+
+        self.locals_enabled = locals_enabled
+        self.temp_free_needed = temp_free_needed
 
         self.generator = c_generator.CGenerator()
 
@@ -712,7 +723,11 @@ class I3SProcessing(object):
 
         old_local = copy(cs.tcg_tmp_local_list_hold)
 
-        given_args = len(node.args.exprs)
+        args = node.args
+        if args:
+            given_args = len(args.exprs)
+        else:
+            given_args = 0
 
         if args_count != given_args:
             raise TypeError(
@@ -721,7 +736,7 @@ class I3SProcessing(object):
                 )
             )
 
-        zip_arg_with_type = zip(node.args.exprs, node.args_type)
+        zip_arg_with_type = zip(args.exprs if args else [], node.args_type)
         has_tcg_arg = False
 
         if debug:
@@ -749,14 +764,16 @@ class I3SProcessing(object):
                     res = cs.cast(
                         (p_arg, None, None),
                         (None, at, None),
-                        True
+                        self.locals_enabled
                     )
                     for e in cs.subast:
                         set_node_prefix(e, cs.indent)
 
                 for tmp_name, __ in cs.tcg_tmp_list:
                     if tmp_name == res.name:
-                        local_var = cs.get_unoccupied_tmp_tcg(at, True)
+                        local_var = cs.get_unoccupied_tmp_tcg(at,
+                            self.locals_enabled
+                        )
                         res.prefix = ' '
                         suffix = get_tcg_suffix(at)
                         self.cs.subast.append(c_ast.FuncCall(
@@ -823,7 +840,9 @@ class I3SProcessing(object):
         if node.block_items is None:
             return
 
-        self.cs = CompoundState(prev_state = self.cs)
+        self.cs = CompoundState(prev_state = self.cs,
+            temp_free_needed = self.temp_free_needed,
+        )
         cs = self.cs
 
         new_block_items = []
@@ -1207,7 +1226,9 @@ class I3SProcessing(object):
                 )
 
     def processing_Case(self, node, parent, debug):
-        self.cs = CompoundState(prev_state = self.cs)
+        self.cs = CompoundState(prev_state = self.cs,
+            temp_free_needed = self.temp_free_needed,
+        )
         cs = self.cs
 
         # We can get here only from Switch with non TCG cond
@@ -1278,7 +1299,9 @@ class I3SProcessing(object):
 
         for tmp_name, __ in cs.tcg_tmp_list:
             if cond.name == tmp_name:
-                local_var = cs.get_unoccupied_tmp_tcg(cond_type, True)
+                local_var = cs.get_unoccupied_tmp_tcg(cond_type,
+                    self.locals_enabled
+                )
                 cond.prefix = ' '
                 self.cs.subast.append(c_ast.FuncCall(
                     c_ast.ID('tcg_gen_mov' + cond_suffix),
@@ -1447,7 +1470,7 @@ class I3SProcessing(object):
         var_type = 'TCGv'
         alloc_name = 'tcg_temp'
 
-        if identifierType.is_local_tcg:
+        if identifierType.is_local_tcg and self.locals_enabled:
             alloc_name += '_local'
         alloc_name += '_new'
         suffix = "_tl"
@@ -2356,14 +2379,16 @@ def determine_var_type(node, ns = {}, func_params = {}):
         func_name = node.decl.type.type.declname
         func_params[func_name] = []
         body_ns = ns.copy()
-        for p in node.decl.type.args.params:
-            while not (
-                    isinstance(p, c_ast.TypeDecl)
-                and isinstance(p.type, c_ast.IdentifierType)
-            ):
-                p = p.type
-            body_ns[p.declname] = [p.type, False]
-            func_params[func_name].append(p.type.names)
+        args = node.decl.type.args
+        if args:
+            for p in args.params:
+                while not (
+                        isinstance(p, c_ast.TypeDecl)
+                    and isinstance(p.type, c_ast.IdentifierType)
+                ):
+                    p = p.type
+                body_ns[p.declname] = [p.type, False]
+                func_params[func_name].append(p.type.names)
 
         determine_var_type(node.body, body_ns)
 
@@ -2388,7 +2413,18 @@ def determine_var_type(node, ns = {}, func_params = {}):
             determine_var_type(child, ns, func_params)
 
 
-def convert_i3s_to_c(ast, debug = False):
+def convert_i3s_to_c(ast,
+    debug = False,
+    locals_enabled = True,
+    temp_free_needed = True,
+    trunc_func_prefix = None,
+):
+    if trunc_func_prefix is not None:
+        CompoundState.trunc_func_prefix = trunc_func_prefix
+
     determine_var_type(ast)
-    i3s_class = I3SProcessing()
+    i3s_class = I3SProcessing(
+        locals_enabled = locals_enabled,
+        temp_free_needed = temp_free_needed,
+    )
     i3s_class.processing(ast, None, debug)
