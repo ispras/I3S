@@ -634,7 +634,7 @@ int for_test(void) {
 
 int helper(short tcg a1, tcg a2) {}
 
-int func_call_test(void) {
+int func_call_test() {
     int a = 5;
     tcg b = 6;
 

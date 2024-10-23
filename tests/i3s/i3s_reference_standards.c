@@ -1115,7 +1115,7 @@ int for_test(void) {
 
 int helper(TCGv_i32 a1, TCGv a2) {}
 
-int func_call_test(void) {
+int func_call_test() {
     int a = 5;
     TCGv b = tcg_temp_local_new();
     tcg_gen_movi_tl(b, 6);
