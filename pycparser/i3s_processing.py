@@ -723,7 +723,11 @@ class I3SProcessing(object):
 
         old_local = copy(cs.tcg_tmp_local_list_hold)
 
-        given_args = len(node.args.exprs)
+        args = node.args
+        if args:
+            given_args = len(args.exprs)
+        else:
+            given_args = 0
 
         if args_count != given_args:
             raise TypeError(
@@ -732,7 +736,7 @@ class I3SProcessing(object):
                 )
             )
 
-        zip_arg_with_type = zip(node.args.exprs, node.args_type)
+        zip_arg_with_type = zip(args.exprs if args else [], node.args_type)
         has_tcg_arg = False
 
         if debug:
