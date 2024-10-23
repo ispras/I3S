@@ -2375,14 +2375,16 @@ def determine_var_type(node, ns = {}, func_params = {}):
         func_name = node.decl.type.type.declname
         func_params[func_name] = []
         body_ns = ns.copy()
-        for p in node.decl.type.args.params:
-            while not (
-                    isinstance(p, c_ast.TypeDecl)
-                and isinstance(p.type, c_ast.IdentifierType)
-            ):
-                p = p.type
-            body_ns[p.declname] = [p.type, False]
-            func_params[func_name].append(p.type.names)
+        args = node.decl.type.args
+        if args:
+            for p in args.params:
+                while not (
+                        isinstance(p, c_ast.TypeDecl)
+                    and isinstance(p.type, c_ast.IdentifierType)
+                ):
+                    p = p.type
+                body_ns[p.declname] = [p.type, False]
+                func_params[func_name].append(p.type.names)
 
         determine_var_type(node.body, body_ns)
 
