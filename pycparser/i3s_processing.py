@@ -265,7 +265,7 @@ def change_declname(node, new_name):
 
 class CompoundState(object):
 
-    trunc_func_prefix = "tcg_gen_trunc"
+    replaced_funcs = {}
 
     def __init__(self, prev_state = None, temp_free_needed = True):
 
@@ -464,7 +464,9 @@ class CompoundState(object):
                 + ('' if 'signed' in dest_type else 'u') \
                 + src_suffix + dest_suffix
         else:
-            func_name = self.trunc_func_prefix + src_suffix + dest_suffix
+            func_name = 'tcg_gen_trunc' + src_suffix + dest_suffix
+
+        func_name = self.replaced_funcs.get(func_name, func_name)
 
         set_node_prefix(src, ' ')
         if dest is not None:
@@ -2417,10 +2419,10 @@ def convert_i3s_to_c(ast,
     debug = False,
     locals_enabled = True,
     temp_free_needed = True,
-    trunc_func_prefix = None,
+    replaced_funcs = None,
 ):
-    if trunc_func_prefix is not None:
-        CompoundState.trunc_func_prefix = trunc_func_prefix
+    if replaced_funcs is not None:
+        CompoundState.replaced_funcs = replaced_funcs
 
     determine_var_type(ast)
     i3s_class = I3SProcessing(
