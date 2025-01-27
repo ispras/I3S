@@ -634,7 +634,7 @@ int for_test(void) {
 
 int helper(short tcg a1, tcg a2) {}
 
-int func_call_test(void) {
+int func_call_test() {
     int a = 5;
     tcg b = 6;
 
@@ -664,6 +664,10 @@ int func_call_test(void) {
     b = helper(a + 1, b + b);
     // helper(a + 1, helper(a + 1, b + b));
     helper(a + 1, helper(a + 1, b + b));
+}
+
+int no_args_func_call_test() {
+	func_call_test();
 }
 
 #endif /* INCLUDE_I3S_C */

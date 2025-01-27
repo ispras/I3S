@@ -394,7 +394,11 @@ class CGenerator(object):
                     nstr += modifiers[i].prefix
                     if (i != 0 and isinstance(modifiers[i - 1], c_ast.PtrDecl)):
                         nstr = '(' + nstr + ')'
-                    nstr += '(' + self.visit(modifier.args) + ')'
+                    args = modifier.args
+                    if args:
+                        nstr += '(' + self.visit(args) + ')'
+                    else:
+                        nstr += '()'
                 elif isinstance(modifier, c_ast.PtrDecl):
                     if modifier.quals:
                         nstr = modifiers[i].prefix + \

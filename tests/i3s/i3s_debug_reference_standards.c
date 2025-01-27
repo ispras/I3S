@@ -504,11 +504,10 @@ int test_expr(void) {
     tcg_gen_addi_tl(i3s_t3_tl, tcg_tl_1, 3);
     tcg_gen_divu_tl(i3s_t0_tl, i3s_t0_tl, i3s_t3_tl);
     tcg_gen_mul_tl(i3s_t3_tl, tcg_tl_1, tcg_tl_signed);
-    tcg_gen_movi_i32(i3s_t7_tl, c_var_1);
-    tcg_gen_divu_i32(i3s_t7_tl, i3s_t7_tl, tcg_i32_1);
-    TCGv i3s_t8_tl = tcg_temp_new();
-    tcg_gen_extu_i32_tl(i3s_t8_tl, i3s_t7_tl);
-    tcg_gen_divu_tl(i3s_t3_tl, i3s_t3_tl, i3s_t8_tl);
+    tcg_gen_movi_i32(i3s_t2_i32, c_var_1);
+    tcg_gen_divu_i32(i3s_t2_i32, i3s_t2_i32, tcg_i32_1);
+    tcg_gen_extu_i32_tl(i3s_t7_tl, i3s_t2_i32);
+    tcg_gen_divu_tl(i3s_t3_tl, i3s_t3_tl, i3s_t7_tl);
     tcg_gen_add_tl(tcg_tl_1, i3s_t0_tl, i3s_t3_tl);
 
     /* src: tcg_tl_1 = (long tcg)(tcg_i32_1) */
@@ -516,8 +515,9 @@ int test_expr(void) {
     tcg_gen_trunc_i64_tl(tcg_tl_1, i3s_t4_i64);
 
     /* src: tcg_tl_1 = (tcg)(tcg_i32_1 + tcg_i32_2) */
-    tcg_gen_add_i32(i3s_t2_i32, tcg_i32_1, tcg_i32_2);
-    tcg_gen_extu_i32_tl(tcg_tl_1, i3s_t2_i32);
+    TCGv_i32 i3s_t8_i32 = tcg_temp_new_i32();
+    tcg_gen_add_i32(i3s_t8_i32, tcg_i32_1, tcg_i32_2);
+    tcg_gen_extu_i32_tl(tcg_tl_1, i3s_t8_i32);
 
     /* src: tcg_tl_1 = (tcg) tcg_i64_1 */
     tcg_gen_trunc_i64_tl(tcg_tl_1, tcg_i64_1);
@@ -571,7 +571,7 @@ int test_expr(void) {
     tcg_temp_free_i32(i3s_t5_i32);
     tcg_temp_free_i32(i3s_t6_i32);
     tcg_temp_free(i3s_t7_tl);
-    tcg_temp_free(i3s_t8_tl);
+    tcg_temp_free_i32(i3s_t8_i32);
     tcg_temp_free(tcg_tl_1);
     tcg_temp_free(tcg_tl_2);
     tcg_temp_free(tcg_tl_signed);
@@ -1368,7 +1368,7 @@ int for_test(void) {
 
 int helper(TCGv_i32 a1, TCGv a2) {}
 
-int func_call_test(void) {
+int func_call_test() {
     int a = 5;
     TCGv b = tcg_temp_local_new();
     tcg_gen_movi_tl(b, 6);
@@ -1462,6 +1462,10 @@ int func_call_test(void) {
     tcg_temp_free_i32(i3s_t0_local_i32);
     tcg_temp_free(i3s_t1_local_tl);
     tcg_temp_free_i32(i3s_t2_local_i32);
+}
+
+int no_args_func_call_test() {
+	func_call_test();
 }
 
 #endif /* INCLUDE_I3S_C */
