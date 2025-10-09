@@ -404,21 +404,21 @@ int test_expr(void) {
     /* src: tcg_tl_1 = tcg_tl_1 || tcg_i64_2 */
     tcg_gen_trunc_i64_tl(i3s_t0_tl, tcg_i64_2);
     tcg_gen_or_tl(tcg_tl_1, tcg_tl_1, i3s_t0_tl);
-    tcg_gen_setcond_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
+    tcg_gen_setcondi_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
     /* src: tcg_tl_1 = tcg_i32_1 || tcg_i64_2 */
     tcg_gen_extu_i32_i64(i3s_t1_i64, tcg_i32_1);
     tcg_gen_or_i64(i3s_t1_i64, i3s_t1_i64, tcg_i64_2);
-    tcg_gen_setcond_i64(TCG_COND_NE, i3s_t1_i64, i3s_t1_i64, 0);
+    tcg_gen_setcondi_i64(TCG_COND_NE, i3s_t1_i64, i3s_t1_i64, 0);
     tcg_gen_trunc_i64_tl(tcg_tl_1, i3s_t1_i64);
     /* src: tcg_tl_1 = tcg_tl_1 || tcg_tl_2 */
     tcg_gen_or_tl(tcg_tl_1, tcg_tl_1, tcg_tl_2);
-    tcg_gen_setcond_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
+    tcg_gen_setcondi_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
     /* src: tcg_tl_1 = tcg_tl_1 || tcg_tl_signed */
     tcg_gen_or_tl(tcg_tl_1, tcg_tl_1, tcg_tl_signed);
-    tcg_gen_setcond_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
+    tcg_gen_setcondi_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
     /* src: tcg_tl_1 = tcg_tl_signed || tcg_tl_1 */
     tcg_gen_or_tl(tcg_tl_1, tcg_tl_signed, tcg_tl_1);
-    tcg_gen_setcond_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
+    tcg_gen_setcondi_tl(TCG_COND_NE, tcg_tl_1, tcg_tl_1, 0);
     // >, <, >=, <=, ==, !=
     /* src: tcg_tl_1 = tcg_tl_1 > c_var_2 */
     tcg_gen_setcondi_tl(TCG_COND_GTU, tcg_tl_1, tcg_tl_1, c_var_2);
