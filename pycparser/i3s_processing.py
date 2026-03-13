@@ -1977,7 +1977,7 @@ class I3SProcessing(object):
             if res_var is None:
                 # avoid extra setcond
                 res_var = (
-                    c_ast.ID('tcg_gen_brcond' + i_str + suffix),
+                    c_ast.ID('tcg_gen_brcondi' + suffix),
                     [
                         c_ast.ID('TCG_COND_EQ'),
                         or_res,
@@ -1986,7 +1986,7 @@ class I3SProcessing(object):
                 )
             else:
                 self.cs.subast.append(c_ast.FuncCall(
-                    c_ast.ID('tcg_gen_setcond' + i_str + suffix),
+                    c_ast.ID('tcg_gen_setcondi' + suffix),
                     c_ast.ExprList([
                         c_ast.ID('TCG_COND_NE'),
                         res_var,
